@@ -23,8 +23,9 @@ substitutions:
   mist_pin: GPIO1
 
 esphome:
-  name: ${devicename}
-  friendly_name: ${friendly_devicename}
+  name: reptile-enclosure
+  friendly_name: Reptile Enclosure
+  min_version: 2024.6.0
 
 esp32:
   board: esp32-c3-devkitm-1
