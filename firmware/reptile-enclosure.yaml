@@ -1,0 +1,459 @@
+substitutions:
+  devicename: "reptile-enclosure"
+  friendly_devicename: "Reptile Enclosure"
+  timezone: "America/Chicago"
+  # relay switch gpio
+  output_name_1: "Day"
+  output_icon_1: "mdi:weather-sunny"
+  outout_gpio_1: GPIO2
+  output_name_2: "Night"
+  output_icon_2: "mdi:weather-night"
+  outout_gpio_2: GPIO3
+  # light gpio
+  light_name: "Status"
+  light_gpio: GPIO10
+  light_brightness: "40"
+  # run modes
+  mode_sun: "Sunrise/Sunset"
+  mode_time: "Time"
+  mode_manual: "Manual"
+  # Temperature and Humidity AM2120
+  temp_pin: GPIO0
+  # Mist Motor relay. TIP120
+  mist_pin: GPIO1
+
+esphome:
+  name: ${devicename}
+  friendly_name: ${friendly_devicename}
+
+esp32:
+  board: esp32-c3-devkitm-1
+  framework:
+    type: arduino
+
+
+logger:
+api:
+
+ota:
+  - platform: esphome
+    id: ota_esphome
+
+wifi:
+  ap:
+
+captive_portal:
+web_server:
+  port: 8080
+  ota: False
+  log: True
+  local: True
+  version: 3
+
+time:
+  - platform: sntp
+    id: sntp_time
+    timezone: ${timezone}
+    servers:
+      - 0.pool.ntp.org
+      - 1.pool.ntp.org
+      - 2.pool.ntp.org
+    on_time_sync:
+      then:
+        - logger.log: "Time Synchronized updating sunrise and sunset"
+
+select:
+  - platform: template
+    name: "Light Mode"
+    id: light_run_mode
+    restore_value: True
+    optimistic: True
+    icon: "mdi:auto-mode"
+    entity_category: "CONFIG"
+    web_server_sorting_weight: 9
+    options:
+      - "${mode_sun}"
+      - "${mode_time}"
+      - "${mode_manual}"
+    on_value:
+      then:
+        - logger.log:
+            format: "Light Mode changed to: %s (index %d)"
+            args: ["x.c_str()", "i"]
+            level: INFO
+
+datetime:
+  - platform: template
+    id: day_start
+    name: "Time: Day Start"
+    icon: "mdi:weather-sunset-up"
+    type: time
+    optimistic: True
+    restore_value: True
+    web_server_sorting_weight: 10
+    entity_category: "CONFIG"
+
+  - platform: template
+    id: night_start
+    name: "Time: Day End"
+    icon: "mdi:weather-sunset-down"
+    type: time
+    optimistic: True
+    restore_value: True
+    web_server_sorting_weight: 11
+    entity_category: "CONFIG"
+
+  - platform: template
+    id: last_mist_time
+    name: "Last Mist Time"
+    type: datetime
+    entity_category: "DIAGNOSTIC"
+    disabled_by_default: True
+    optimistic: True
+    restore_value: True
+    update_interval: never
+
+number:
+  - platform: template
+    id: mist_duration
+    name: "Mist duration (sec)"
+    icon: "mdi:sprinkler-fire"
+    mode: "slider"
+    min_value: 1
+    max_value: 20
+    step: 1
+    optimistic: True
+    restore_value: True
+    entity_category: "CONFIG"
+    web_server_sorting_weight: 12
+  - platform: template
+    id: auto_mist_humidity
+    name: "Humidity Mist Threshold (%)"
+    icon: "mdi:sprinkler-fire"
+    mode: "slider"
+    device_class: "HUMIDITY"
+    min_value: 10
+    max_value: 100
+    step: 5
+    optimistic: True
+    restore_value: True
+    entity_category: "CONFIG"
+    web_server_sorting_weight: 12
+  - platform: template
+    id: auto_mist_timer
+    name: "Auto-mist delay timer (min)"
+    icon: "mdi:timer"
+    mode: "box"
+    min_value: 1
+    max_value: 1440
+    step: 1
+    optimistic: True
+    restore_value: True
+    entity_category: "CONFIG"
+    web_server_sorting_weight: 13
+
+switch:
+  - platform: template
+    id: auto_light_change_mist
+    name: "Mist on Light Change"
+    icon: "mdi:sprinkler-fire"
+    optimistic: True
+    restore_mode: RESTORE_DEFAULT_ON
+    entity_category: "CONFIG"
+    web_server_sorting_weight: 14
+  - platform: gpio
+    id: mist_pump
+    name: "Mister"
+    icon: "mdi:sprinkler-fire"
+    web_server_sorting_weight: 5
+    pin:
+      number: ${mist_pin}
+      inverted: True
+    on_turn_on:
+      - logger.log:
+          format: "Starting Mist for %.0f seconds"
+          args: ['id(mist_duration).state']
+          level: INFO
+      - light.control:
+          id: light_status
+          effect: "mist pulse"
+      - light.turn_on:
+          id: light_status
+          flash_length: !lambda 'return (id(mist_duration).state * 1000);'
+      - delay: !lambda |-
+                float seconds = id(mist_duration).state;
+                int milliseconds = (int) (seconds * 1000);  // Convert seconds to milliseconds
+                return milliseconds;  // Return the value in milliseconds
+      - light.control:
+          id: light_status
+          effect: "none"
+      - logger.log:
+          format: "Mist Complete"
+          level: INFO
+      - switch.turn_off: mist_pump
+      - datetime.datetime.set:
+          id: last_mist_time
+          datetime: !lambda |-
+            return id(sntp_time).now();
+
+sun:
+  id: sun_sun
+  latitude: 33.0142765°
+  longitude: -97.025589°
+
+
+output:
+  - platform: gpio
+    id: "relay_output_1"
+    pin: ${outout_gpio_1}
+    inverted: True
+  - platform: gpio
+    id: "relay_output_2"
+    pin: ${outout_gpio_2}
+    inverted: True
+
+light:
+  - platform: esp32_rmt_led_strip
+    chipset: WS2812
+    pin: ${light_gpio}
+    rmt_channel: 0
+    num_leds: 1
+    rgb_order: GRB
+    name: "${light_name}"
+    id: light_status
+    internal: True
+    web_server_sorting_weight: 5
+    restore_mode: RESTORE_DEFAULT_OFF
+    effects:
+      - flicker:
+      - random:
+      - pulse:
+      - pulse:
+          name: "mist pulse"
+          max_brightness: "${light_brightness}%"
+          transition_length: 0.5s
+          update_interval: 0.5s
+      - strobe
+
+  - platform: binary
+    id: light_1
+    name: "${output_name_1}"
+    output: "relay_output_1"
+    icon: "${output_icon_1}"
+    restore_mode: RESTORE_DEFAULT_OFF
+    web_server_sorting_weight: 3
+    on_turn_on:
+      then:
+        - logger.log:
+            format: "Day Mode On"
+            level: INFO
+        - light.turn_off: light_2
+        - delay: 500ms
+        - light.turn_on:
+            id: light_status
+            transition_length: 300ms
+            brightness: "${light_brightness}%"
+            color_mode: RGB
+            red: 100%
+            green: 54.9%
+            blue: 0%
+    on_turn_off:
+      then:
+        - light.turn_off:
+            id: light_status
+            transition_length: 100ms
+
+
+  - platform: binary
+    id: light_2
+    name: "${output_name_2}"
+    output: "relay_output_2"
+    icon: "${output_icon_2}"
+    restore_mode: RESTORE_DEFAULT_OFF
+    web_server_sorting_weight: 4
+    on_turn_on:
+      then:
+        - logger.log:
+            format: "Night Mode On"
+            level: INFO
+        - light.turn_off: light_1
+        - delay: 500ms
+        - light.turn_on:
+            id: light_status
+            transition_length: 300ms
+            brightness: "${light_brightness}%"
+            color_mode: RGB
+            red: 10%
+            green: 0%
+            blue: 90%
+    on_turn_off:
+      then:
+        - light.turn_off:
+            id: light_status
+            transition_length: 100ms
+
+button:
+  - platform: restart
+    name: Restart
+    entity_category: "DIAGNOSTIC"
+    web_server_sorting_weight: 11
+
+sensor:
+  - platform: uptime
+    name: Uptime
+    id: the_uptime
+    entity_category: "DIAGNOSTIC"
+    web_server_sorting_weight: 10
+    unit_of_measurement: s
+    update_interval: 10s
+    # filters:
+    #   - multiply: 1000
+
+  - platform: sun
+    name: Sun Elevation
+    type: elevation
+    update_interval: 60s
+    entity_category: "DIAGNOSTIC"
+    web_server_sorting_weight: 3
+
+  - platform: dht
+    pin: ${temp_pin}
+    temperature:
+      name: "Temperature"
+      icon: "mdi:thermometer"
+      web_server_sorting_weight: 6
+    humidity:
+      name: "Humidity"
+      icon: "mdi:water-percent"
+      web_server_sorting_weight: 7
+    update_interval: 60s
+
+text_sensor:
+  - platform: sun
+    id: next_sunrise
+    name: "Next Sunrise"
+    type: sunrise
+    update_interval: 60s
+    entity_category: "DIAGNOSTIC"
+    web_server_sorting_weight: 4
+
+  - platform: sun
+    id: next_sunset
+    name: "Next Sunset"
+    type: sunset
+    update_interval: 60s
+    entity_category: "DIAGNOSTIC"
+    web_server_sorting_weight: 5
+
+binary_sensor:
+  - platform: template
+    name: "NTP Time Sync"
+    id: snmp_time_is_valid
+    icon: "mdi:web-clock"
+    entity_category: DIAGNOSTIC
+    web_server_sorting_weight: 1
+    lambda: 'return id(sntp_time).now().is_valid();'
+
+  - platform: template
+    id: can_do_mist
+    name: "Auto-mist Allowed"
+    disabled_by_default: True
+    entity_category: DIAGNOSTIC
+    lambda: |-
+      if (id(the_uptime).state < 10) { return false; }
+      ESPTime now = id(sntp_time).now();
+      ESPTime last_mist = id(last_mist_time).state_as_esptime();
+      int delta_allowed = ((id(auto_mist_timer).state * 60) + 3600);
+      int delta_seconds = (now.timestamp - last_mist.timestamp);
+      //ESP_LOGI("mist", "delta allowed: %i. delta: %i", delta_allowed, delta_seconds);
+      return (delta_seconds > delta_allowed);
+    on_press:
+      then:
+        - logger.log:
+                format: "Auto-Mist enabled"
+                level: INFO
+    on_release:
+      then:
+        - logger.log:
+                format: "Auto-Mist Disabled for %.0f minute(s)."
+                args: ['id(auto_mist_timer).state']
+                level: INFO
+  - platform: template
+    name: "Day Time"
+    id: is_day_time
+    icon: "mdi:sun-clock"
+    entity_category: DIAGNOSTIC
+    web_server_sorting_weight: 2
+    lambda: |-
+      // Verify that the light mode is automatic
+      if (id(light_run_mode).state == "${mode_manual}") {
+        if(id(light_1).current_values.is_on()) { return true;}
+        if(id(light_2).current_values.is_on()) { return false;}
+        return false;
+      } else {
+        // Verify that NTP time is in sync
+        if (! id(sntp_time).now().is_valid()) {
+          return false;
+        } else {
+          // use sunrise/sunset from sun if mode_sun
+          if (id(light_run_mode).state == "${mode_sun}") {
+              auto now = id(sntp_time).now();
+              auto sunrise_obj = id(sun_sun).sunrise(-0.833);
+              auto sunset_obj = id(sun_sun).sunset(-0.833);
+
+              int current_time = now.hour * 60 + now.minute;  // Current time in minutes since midnight
+              int day_time = (sunrise_obj.value().hour * 60) + sunrise_obj.value().minute;
+              int night_time = (sunset_obj.value().hour * 60) + sunset_obj.value().minute;
+
+              // Return true if the current time is between day_time and night_time
+              return (current_time >= day_time && current_time < night_time);
+          }
+          // calculate if set by time input
+          if (id(light_run_mode).state == "${mode_time}") {
+              auto now = id(sntp_time).now();
+              int current_time = now.hour * 60 + now.minute;  // Current time in minutes since midnight
+
+              // Get the sunrise time from datetime component
+              auto day_time_obj = id(day_start).state_as_esptime();
+              int day_time = (day_time_obj.hour * 60) + day_time_obj.minute;
+
+              // Get the sunset time from datetime component
+              auto night_time_obj = id(night_start).state_as_esptime();
+              int night_time = (night_time_obj.hour * 60) + night_time_obj.minute;
+
+              // Return true if the current time is between open_time and close_time
+              return (current_time >= day_time && current_time < night_time);
+          } else { return false; }
+        }
+      }
+
+    #----------------------------------------------------------------------------------
+    # Automation to control the lights based on the time
+    #----------------------------------------------------------------------------------
+    on_press:
+      then:
+        - logger.log:
+                format: "Day Time Mode Activated"
+                level: INFO
+        - light.turn_on: light_1
+        # Run mister if auto_light_change_mist is enabled
+        - if:
+            condition:
+              - lambda: 'return id(auto_light_change_mist).state;'
+              - lambda: 'return id(can_do_mist).state;'
+
+            then:
+              - switch.turn_on: mist_pump
+    on_release:
+      then:
+        - logger.log:
+                format: "Night Time Mode Activated"
+                level: INFO
+        - light.turn_on: light_2
+        # Run mister if auto_light_change_mist is enabled
+        - if:
+            condition:
+              - lambda: 'return id(auto_light_change_mist).state;'
+              - lambda: 'return id(can_do_mist).state;'
+            then:
+              - switch.turn_on: mist_pump
