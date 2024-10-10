@@ -308,7 +308,7 @@ button:
     web_server_sorting_weight: 11
 
 sensor:
-  - id: !extend uptime_sensor
+  - id: !extend uptime
     web_server_sorting_weight: 10
 
   - platform: sun
