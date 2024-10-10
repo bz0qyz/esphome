@@ -347,9 +347,6 @@ text_sensor:
     entity_category: "DIAGNOSTIC"
     web_server_sorting_weight: 5
 
-  - id: !remove bssid
-#  - id: !remove esp_wifi_mac
-
 binary_sensor:
   - platform: template
     name: "NTP Time Sync"

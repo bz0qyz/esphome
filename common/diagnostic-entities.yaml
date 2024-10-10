@@ -24,13 +24,3 @@ text_sensor:
       name: ESP Connected SSID
       entity_category: "DIAGNOSTIC"
       disabled_by_default: true
-    bssid:
-      id: esp_wifi_bssid
-      name: ESP Connected BSSID
-      entity_category: "DIAGNOSTIC"
-      disabled_by_default: true
-    mac_address:
-      id: esp_wifi_mac
-      name: ESP Mac Wifi Address
-      entity_category: "DIAGNOSTIC"
-      disabled_by_default: true
