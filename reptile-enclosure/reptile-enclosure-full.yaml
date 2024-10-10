@@ -25,12 +25,13 @@ substitutions:
   # Mist Motor relay. TIP120
   mist_pump_pin: GPIO1
 
-packages: 
-  bz0qyz.diagnostic-entities:
-    url: https://github.com/bz0qyz/esphome
-    files: [common/diagnostic-entities.yaml]
-    ref: main
-    refresh: 120s
+packages:
+  diagnostic-entities: !include ../common/diagnostic-entities.yaml
+#  bz0qyz.diagnostic-entities:
+#    url: https://github.com/bz0qyz/esphome
+#    files: [common/diagnostic-entities.yaml]
+#    ref: main
+#    refresh: 120s
 
 esphome:
   name: ${devicename}
@@ -345,7 +346,7 @@ text_sensor:
     update_interval: 60s
     entity_category: "DIAGNOSTIC"
     web_server_sorting_weight: 5
-  
+
   - id: !remove esp_wifi_bssid
   - id: !remove esp_wifi_mac
 
