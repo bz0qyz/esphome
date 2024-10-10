@@ -1,13 +1,12 @@
 button:
   - platform: restart
     name: Restart
-    id: restart_button
     entity_category: "DIAGNOSTIC"
 
 sensor:
   - platform: uptime
     name: Uptime
-    id: uptime_sensor
+    id: uptime
     entity_category: "DIAGNOSTIC"
     unit_of_measurement: s
     update_interval: 10s
