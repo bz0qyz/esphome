@@ -239,7 +239,7 @@ light:
       - strobe
 
   - platform: binary
-    id: light_1
+    id: light_day
     name: "${relay_day_name}"
     output: "relay_day_output"
     icon: "${relay_day_icon}"
@@ -250,7 +250,7 @@ light:
         - logger.log:
             format: "Day Mode On"
             level: INFO
-        - light.turn_off: light_2
+        - light.turn_off: light_night
         - delay: 500ms
         - light.turn_on:
             id: light_status
@@ -268,10 +268,10 @@ light:
 
 
   - platform: binary
-    id: light_2
-    name: "${output_name_2}"
+    id: light_night
+    name: "${relay_night_name}"
     output: "relay_night_output"
-    icon: "${output_icon_2}"
+    icon: "${relay_night_icon}"
     restore_mode: RESTORE_DEFAULT_OFF
     web_server_sorting_weight: 4
     on_turn_on:
@@ -279,7 +279,7 @@ light:
         - logger.log:
             format: "Night Mode On"
             level: INFO
-        - light.turn_off: light_1
+        - light.turn_off: light_day
         - delay: 500ms
         - light.turn_on:
             id: light_status
@@ -391,8 +391,8 @@ binary_sensor:
     lambda: |-
       // Verify that the light mode is automatic
       if (id(light_run_mode).state == "${mode_manual}") {
-        if(id(light_1).current_values.is_on()) { return true;}
-        if(id(light_2).current_values.is_on()) { return false;}
+        if(id(light_day).current_values.is_on()) { return true;}
+        if(id(light_night).current_values.is_on()) { return false;}
         return false;
       } else {
         // Verify that NTP time is in sync
@@ -439,7 +439,7 @@ binary_sensor:
         - logger.log:
                 format: "Day Time Mode Activated"
                 level: INFO
-        - light.turn_on: light_1
+        - light.turn_on: light_day
         # Run mister if auto_light_change_mist is enabled
         - if:
             condition:
@@ -453,7 +453,7 @@ binary_sensor:
         - logger.log:
                 format: "Night Time Mode Activated"
                 level: INFO
-        - light.turn_on: light_2
+        - light.turn_on: light_night
         # Run mister if auto_light_change_mist is enabled
         - if:
             condition:
