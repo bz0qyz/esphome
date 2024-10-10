@@ -6,7 +6,7 @@ button:
 sensor:
   - platform: uptime
     name: Uptime
-    id: uptime
+    id: uptime_sensor
     entity_category: "DIAGNOSTIC"
     unit_of_measurement: s
     update_interval: 10s
