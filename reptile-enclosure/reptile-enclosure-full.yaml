@@ -25,6 +25,13 @@ substitutions:
   # Mist Motor relay. TIP120
   mist_pump_pin: GPIO1
 
+packages: 
+  bz0qyz.diagnostic-entities:
+    url: https://github.com/bz0qyz/esphome
+    files: [common/diagnostic-entities.yaml]
+    ref: main
+    refresh: 120s
+
 esphome:
   name: ${devicename}
   friendly_name: ${friendly_devicename}
@@ -296,21 +303,12 @@ light:
             transition_length: 100ms
 
 button:
-  - platform: restart
-    name: Restart
-    entity_category: "DIAGNOSTIC"
+  - id: !extend restart_button
     web_server_sorting_weight: 11
 
 sensor:
-  - platform: uptime
-    name: Uptime
-    id: the_uptime
-    entity_category: "DIAGNOSTIC"
+  - !extend: uptime_sensor
     web_server_sorting_weight: 10
-    unit_of_measurement: s
-    update_interval: 10s
-    # filters:
-    #   - multiply: 1000
 
   - platform: sun
     name: Sun Elevation
@@ -347,6 +345,9 @@ text_sensor:
     update_interval: 60s
     entity_category: "DIAGNOSTIC"
     web_server_sorting_weight: 5
+  
+  - id: !remove esp_wifi_bssid
+  - id: !remove esp_wifi_mac
 
 binary_sensor:
   - platform: template
@@ -363,7 +364,7 @@ binary_sensor:
     disabled_by_default: True
     entity_category: DIAGNOSTIC
     lambda: |-
-      if (id(the_uptime).state < 10) { return false; }
+      if (id(uptime_sensor).state < 10) { return false; }
       ESPTime now = id(ntp_time).now();
       ESPTime last_mist = id(last_mist_time).state_as_esptime();
       int delta_allowed = ((id(auto_mist_timer).state * 60) + 3600);
