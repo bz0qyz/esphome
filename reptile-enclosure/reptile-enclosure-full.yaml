@@ -365,7 +365,7 @@ binary_sensor:
     disabled_by_default: True
     entity_category: DIAGNOSTIC
     lambda: |-
-      if (id(uptime).state < 10) { return false; }
+      if (id(uptime_sensor).state < 10) { return false; }
       ESPTime now = id(ntp_time).now();
       ESPTime last_mist = id(last_mist_time).state_as_esptime();
       int delta_allowed = ((id(auto_mist_timer).state * 60) + 3600);
