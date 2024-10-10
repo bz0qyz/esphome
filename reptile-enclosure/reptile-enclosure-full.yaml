@@ -361,7 +361,6 @@ binary_sensor:
     id: can_do_mist
     name: "Auto-mist Allowed"
     disabled_by_default: True
-    internal: !lambda 'return (${debug_sensors} == "true");'
     entity_category: DIAGNOSTIC
     lambda: |-
       if (id(the_uptime).state < 10) { return false; }
