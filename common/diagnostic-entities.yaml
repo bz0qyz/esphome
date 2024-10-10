@@ -1,12 +1,13 @@
 button:
   - platform: restart
+    id: restart_button
     name: Restart
     entity_category: "DIAGNOSTIC"
 
 sensor:
   - platform: uptime
-    name: Uptime
     id: uptime_sensor
+    name: Uptime
     entity_category: "DIAGNOSTIC"
     unit_of_measurement: s
     update_interval: 10s
@@ -14,22 +15,22 @@ sensor:
 text_sensor:
   - platform: wifi_info
     ip_address:
-#      id: esp_wifi_address
+      id: esp_wifi_address
       name: ESP IP Address
       entity_category: "DIAGNOSTIC"
       disabled_by_default: true
     ssid:
-#      id: esp_wifi_ssid
+      id: esp_wifi_ssid
       name: ESP Connected SSID
       entity_category: "DIAGNOSTIC"
       disabled_by_default: true
     bssid:
-#      id: esp_wifi_bssid
+      id: esp_wifi_bssid
       name: ESP Connected BSSID
       entity_category: "DIAGNOSTIC"
       disabled_by_default: true
     mac_address:
-#      id: esp_wifi_mac
+      id: esp_wifi_mac
       name: ESP Mac Wifi Address
       entity_category: "DIAGNOSTIC"
       disabled_by_default: true
