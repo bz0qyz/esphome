@@ -2,30 +2,32 @@
 substitutions:
   devicename: "reptile-enclosure"
   friendly_devicename: "Reptile Enclosure"
+  # the timezone for ntp_time
   timezone: "America/Chicago"
-  # relay switch gpio
-  output_name_1: "Day"
-  output_icon_1: "mdi:weather-sunny"
-  outout_gpio_1: GPIO2
-  output_name_2: "Night"
-  output_icon_2: "mdi:weather-night"
-  outout_gpio_2: GPIO3
+  # relay switch gpio for Day
+  relay_day_name: "Day"
+  relay_day_icon: "mdi:weather-sunny"
+  relay_day_pin: GPIO2
+  # relay switch gpio for Night
+  relay_night_name: "Night"
+  relay_night_icon: "mdi:weather-night"
+  relay_night_pin: GPIO3
   # light gpio
-  light_name: "Status"
-  light_gpio: GPIO10
-  light_brightness: "40"
+  light_status_name: "Status"
+  light_status_pin: GPIO10
+  light_status_brightness: "40"
   # run modes
   mode_sun: "Sunrise/Sunset"
   mode_time: "Time"
   mode_manual: "Manual"
   # Temperature and Humidity AM2120
-  temp_pin: GPIO0
+  dht_sensor_pin: GPIO0
   # Mist Motor relay. TIP120
-  mist_pin: GPIO1
+  mist_pump_pin: GPIO1
 
 esphome:
-  name: reptile-enclosure
-  friendly_name: Reptile Enclosure
+  name: ${devicename}
+  friendly_name: ${friendly_devicename}
   min_version: 2024.6.0
 
 esp32:
@@ -33,17 +35,14 @@ esp32:
   framework:
     type: arduino
 
-
 logger:
+  level: DEBUG
 api:
-
 ota:
   - platform: esphome
     id: ota_esphome
-
 wifi:
   ap:
-
 captive_portal:
 web_server:
   port: 8080
@@ -54,7 +53,7 @@ web_server:
 
 time:
   - platform: sntp
-    id: sntp_time
+    id: ntp_time
     timezone: ${timezone}
     servers:
       - 0.pool.ntp.org
@@ -62,7 +61,9 @@ time:
       - 2.pool.ntp.org
     on_time_sync:
       then:
-        - logger.log: "Time Synchronized updating sunrise and sunset"
+        - logger.log:
+            format: "Time Synchronized updating sunrise and sunset"
+            level: INFO
 
 select:
   - platform: template
@@ -169,7 +170,7 @@ switch:
     icon: "mdi:sprinkler-fire"
     web_server_sorting_weight: 5
     pin:
-      number: ${mist_pin}
+      number: ${mist_pump_pin}
       inverted: True
     on_turn_on:
       - logger.log:
@@ -196,7 +197,7 @@ switch:
       - datetime.datetime.set:
           id: last_mist_time
           datetime: !lambda |-
-            return id(sntp_time).now();
+            return id(ntp_time).now();
 
 sun:
   id: sun_sun
@@ -206,22 +207,22 @@ sun:
 
 output:
   - platform: gpio
-    id: "relay_output_1"
-    pin: ${outout_gpio_1}
+    id: "relay_day_output"
+    pin: ${relay_day_pin}
     inverted: True
   - platform: gpio
-    id: "relay_output_2"
-    pin: ${outout_gpio_2}
+    id: "relay_night_output"
+    pin: ${relay_night_pin}
     inverted: True
 
 light:
   - platform: esp32_rmt_led_strip
     chipset: WS2812
-    pin: ${light_gpio}
+    pin: ${light_status_pin}
     rmt_channel: 0
     num_leds: 1
     rgb_order: GRB
-    name: "${light_name}"
+    name: "${light_status_name}"
     id: light_status
     internal: True
     web_server_sorting_weight: 5
@@ -232,16 +233,16 @@ light:
       - pulse:
       - pulse:
           name: "mist pulse"
-          max_brightness: "${light_brightness}%"
+          max_brightness: "${light_status_brightness}%"
           transition_length: 0.5s
           update_interval: 0.5s
       - strobe
 
   - platform: binary
     id: light_1
-    name: "${output_name_1}"
-    output: "relay_output_1"
-    icon: "${output_icon_1}"
+    name: "${relay_day_name}"
+    output: "relay_day_output"
+    icon: "${relay_day_icon}"
     restore_mode: RESTORE_DEFAULT_OFF
     web_server_sorting_weight: 3
     on_turn_on:
@@ -254,7 +255,7 @@ light:
         - light.turn_on:
             id: light_status
             transition_length: 300ms
-            brightness: "${light_brightness}%"
+            brightness: "${light_status_brightness}%"
             color_mode: RGB
             red: 100%
             green: 54.9%
@@ -269,7 +270,7 @@ light:
   - platform: binary
     id: light_2
     name: "${output_name_2}"
-    output: "relay_output_2"
+    output: "relay_night_output"
     icon: "${output_icon_2}"
     restore_mode: RESTORE_DEFAULT_OFF
     web_server_sorting_weight: 4
@@ -283,7 +284,7 @@ light:
         - light.turn_on:
             id: light_status
             transition_length: 300ms
-            brightness: "${light_brightness}%"
+            brightness: "${light_status_brightness}%"
             color_mode: RGB
             red: 10%
             green: 0%
@@ -319,7 +320,7 @@ sensor:
     web_server_sorting_weight: 3
 
   - platform: dht
-    pin: ${temp_pin}
+    pin: ${dht_sensor_pin}
     temperature:
       name: "Temperature"
       icon: "mdi:thermometer"
@@ -354,16 +355,17 @@ binary_sensor:
     icon: "mdi:web-clock"
     entity_category: DIAGNOSTIC
     web_server_sorting_weight: 1
-    lambda: 'return id(sntp_time).now().is_valid();'
+    lambda: 'return id(ntp_time).now().is_valid();'
 
   - platform: template
     id: can_do_mist
     name: "Auto-mist Allowed"
     disabled_by_default: True
+    internal: !lambda 'return (${debug_sensors} == "true");'
     entity_category: DIAGNOSTIC
     lambda: |-
       if (id(the_uptime).state < 10) { return false; }
-      ESPTime now = id(sntp_time).now();
+      ESPTime now = id(ntp_time).now();
       ESPTime last_mist = id(last_mist_time).state_as_esptime();
       int delta_allowed = ((id(auto_mist_timer).state * 60) + 3600);
       int delta_seconds = (now.timestamp - last_mist.timestamp);
@@ -394,12 +396,12 @@ binary_sensor:
         return false;
       } else {
         // Verify that NTP time is in sync
-        if (! id(sntp_time).now().is_valid()) {
+        if (! id(ntp_time).now().is_valid()) {
           return false;
         } else {
           // use sunrise/sunset from sun if mode_sun
           if (id(light_run_mode).state == "${mode_sun}") {
-              auto now = id(sntp_time).now();
+              auto now = id(ntp_time).now();
               auto sunrise_obj = id(sun_sun).sunrise(-0.833);
               auto sunset_obj = id(sun_sun).sunset(-0.833);
 
@@ -412,7 +414,7 @@ binary_sensor:
           }
           // calculate if set by time input
           if (id(light_run_mode).state == "${mode_time}") {
-              auto now = id(sntp_time).now();
+              auto now = id(ntp_time).now();
               int current_time = now.hour * 60 + now.minute;  // Current time in minutes since midnight
 
               // Get the sunrise time from datetime component
