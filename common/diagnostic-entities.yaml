@@ -1,3 +1,10 @@
+web_server:
+  port: 8080
+  ota: False
+  log: True
+  local: True
+  version: 3
+
 button:
   - platform: restart
     id: restart_button

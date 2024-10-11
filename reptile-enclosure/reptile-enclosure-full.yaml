@@ -52,12 +52,6 @@ ota:
 wifi:
   ap:
 captive_portal:
-web_server:
-  port: 8080
-  ota: False
-  log: True
-  local: True
-  version: 3
 
 time:
   - platform: sntp
