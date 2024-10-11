@@ -103,7 +103,7 @@ binary_sensor:
       - delayed_on_off: 50ms
     on_state:
       then:
-        - switch.toggle: relay_1
+        - light.toggle: relay_1
 
   # Input 2
   - platform: gpio
@@ -115,7 +115,7 @@ binary_sensor:
       - delayed_on_off: 50ms
     on_state:
       then:
-        - switch.toggle: relay_2
+        - light.toggle: relay_2
 
 sensor:
   # Uptime sensor.
