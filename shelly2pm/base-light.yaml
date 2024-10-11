@@ -76,14 +76,6 @@ light:
     output: relay2_output
     restore_mode: RESTORE_DEFAULT_OFF
 
-button:
-  # - platform: factory_reset
-  #   name: Restart with Factory Default Settings
-  - platform: restart
-    name: Restart
-    entity_category: "DIAGNOSTIC"
-
-
 binary_sensor:
   # Button on device
   - platform: gpio
