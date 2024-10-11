@@ -23,6 +23,9 @@ substitutions:
   sda_pin: GPIO26
   scl_pin: GPIO25
 
+packages:
+  diagnostic-entities: !include ../common/diagnostic-entities.yaml
+
 esphome:
   name: ${device_name}
   friendly_name: ${friendly_device_name}

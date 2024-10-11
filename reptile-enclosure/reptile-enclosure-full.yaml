@@ -27,11 +27,6 @@ substitutions:
 
 packages:
   diagnostic-entities: !include ../common/diagnostic-entities.yaml
-#  bz0qyz.diagnostic-entities:
-#    url: https://github.com/bz0qyz/esphome
-#    files: [common/diagnostic-entities.yaml]
-#    ref: main
-#    refresh: 120s
 
 esphome:
   name: ${devicename}
