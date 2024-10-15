@@ -18,6 +18,9 @@ sensor:
     entity_category: "DIAGNOSTIC"
     unit_of_measurement: s
     update_interval: 10s
+  - platform: internal_temperature
+    name: "CPU Temperature"
+    entity_category: "DIAGNOSTIC"
 
 text_sensor:
   - platform: wifi_info
