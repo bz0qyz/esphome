@@ -50,7 +50,7 @@ substitutions:
   mist_humidity_sorting_weight: "13"
   mist_timer_sorting_weight: "14"
   mist_light_change_sorting_weight: "15"
-  mist_timer_sorting_weight: "13"
+  mist_humidity_sorting_weight: "13"
 
 
 packages:
@@ -238,7 +238,7 @@ switch:
     entity_category: "CONFIG"
     web_server:
       sorting_group_id: mist_configuration
-      sorting_weight: ${mist_timer_sorting_weight}
+      sorting_weight: ${mist_humidity_sorting_weight}
   - platform: template
     id: auto_light_change_mist
     name: "Mist on Light Change"
