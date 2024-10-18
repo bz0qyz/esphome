@@ -1,7 +1,7 @@
 ---
 substitutions:
-  devicename: "reptile-enclosure"
-  friendly_devicename: "Reptile Enclosure"
+  device_name: "reptile-enclosure"
+  friendly_device_name: "Reptile Enclosure"
   # the timezone for ntp_time
   timezone: "America/Chicago"
   # relay switch gpio for Day
@@ -29,8 +29,8 @@ packages:
   diagnostic-entities: !include ../common/diagnostic-entities.yaml
 
 esphome:
-  name: ${devicename}
-  friendly_name: ${friendly_devicename}
+  name: ${device_name}
+  friendly_name: ${friendly_device_name}
   min_version: 2024.6.0
 
 esp32:
@@ -308,6 +308,8 @@ sensor:
     web_server_sorting_weight: 3
 
   - platform: dht
+    id: dht_sensor
+    model: AM2120
     pin: ${dht_sensor_pin}
     temperature:
       name: "Temperature"
