@@ -21,8 +21,6 @@ substitutions:
   # Temperature and Humidity AM2120
   dht_sensor_pin: GPIO09
   temperature_unit: "°C"
-  temp_sorting_weight: "6"
-  humidity_sorting_weight: "7"
   #  temperature_unit: "°F"
   # Mist Motor relay. TIP120
   mist_pump_pin: GPIO1
@@ -36,6 +34,9 @@ substitutions:
   uptime_sorting_weight: "10"
   internal_temp_sorting_weight: "11"
   time_sync_sorting_weight: "1"
+  # Environment
+  temp_sorting_weight: "6"
+  humidity_sorting_weight: "7"
   # Light
   sun_elevation_sorting_weight: "3"
   sun_sunrise_sorting_weight: "4"
@@ -48,9 +49,10 @@ substitutions:
   mist_pump_sorting_weight: "5"
   mist_last_sorting_weight: "6"
   mist_duration_sorting_weight: "12"
-  mist_humidity_sorting_weight: "13"
-  mist_light_change_sorting_weight: "14"
-  mist_timer_sorting_weight: "15"
+  mist_timer_sorting_weight: "13"
+  mist_on_light_change_sorting_weight: "14"
+  mist_on_humidity_sorting_weight: "15"
+  mist_humidity_sorting_weight: "16"
   mist_allowed_sorting_weight: "16"
 
 
@@ -104,10 +106,10 @@ web_server:
       sorting_weight: 6
     - id: light_diagnostic
       name: "Light Diagnostic"
-      sorting_weight: 6
+      sorting_weight: 7
     - id: mist_diagnostic
       name: "Mist Diagnostic"
-      sorting_weight: 7
+      sorting_weight: 8
 
 
 
@@ -240,7 +242,7 @@ switch:
     entity_category: "CONFIG"
     web_server:
       sorting_group_id: mist_configuration
-      sorting_weight: ${mist_humidity_sorting_weight}
+      sorting_weight: ${mist_on_humidity_sorting_weight}
   - platform: template
     id: auto_light_change_mist
     name: "Mist on Light Change"
@@ -250,7 +252,7 @@ switch:
     entity_category: "CONFIG"
     web_server:
       sorting_group_id: mist_configuration
-      sorting_weight: ${mist_light_change_sorting_weight}
+      sorting_weight: ${mist_on_light_change_sorting_weight}
   - platform: gpio
     id: mist_pump
     name: "Mister"
