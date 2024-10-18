@@ -55,25 +55,25 @@ wifi:
 captive_portal:
 
 web_server:
-  - id: !extend web_server
-    version: 3
-    sorting_groups:
-      - id: light_controls
-        name: "Light Controls"
-        icon: "mdi:lightbulb"
-        entities:
-          - light_day
-          - light_night
-      - id: mist_controls
-        name: "Mist Controls"
-        icon: "mdi:sprinkler"
-        entities:
-          - mist_pump
-      - id: environment_sensors
-        name: "Environment Sensors"
-        icon: "mdi:thermometer"
-        entities:
-          - dht_sensor
+  id: !extend web_server
+  version: 3
+  sorting_groups:
+    - id: light_controls
+      name: "Light Controls"
+      icon: "mdi:lightbulb"
+      entities:
+        - light_day
+        - light_night
+    - id: mist_controls
+      name: "Mist Controls"
+      icon: "mdi:sprinkler"
+      entities:
+        - mist_pump
+    - id: environment_sensors
+      name: "Environment Sensors"
+      icon: "mdi:thermometer"
+      entities:
+        - dht_sensor
 
 
 time:
