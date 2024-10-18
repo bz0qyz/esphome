@@ -1,4 +1,5 @@
 web_server:
+  id: web_server
   port: 8080
   ota: False
   log: True

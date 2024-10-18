@@ -7,10 +7,12 @@ substitutions:
   # relay switch gpio for Day
   relay_day_name: "Day"
   relay_day_icon: "mdi:weather-sunny"
+  relay_day_sorting_weight: "1"
   relay_day_pin: GPIO2
   # relay switch gpio for Night
   relay_night_name: "Night"
   relay_night_icon: "mdi:weather-night"
+  relay_night_sorting_weight: "1"
   relay_night_pin: GPIO3
   # light gpio
   light_status_name: "Status"
@@ -51,6 +53,28 @@ ota:
 wifi:
   ap:
 captive_portal:
+
+web_server:
+  - id: !extend web_server
+    version: 3
+    sorting_groups:
+      - id: light_controls
+        name: "Light Controls"
+        icon: "mdi:lightbulb"
+        entities:
+          - light_day
+          - light_night
+      - id: mist_controls
+        name: "Mist Controls"
+        icon: "mdi:sprinkler"
+        entities:
+          - mist_pump
+      - id: environment_sensors
+        name: "Environment Sensors"
+        icon: "mdi:thermometer"
+        entities:
+          - dht_sensor
+
 
 time:
   - platform: sntp
@@ -264,7 +288,7 @@ light:
     icon: "${relay_day_icon}"
     restore_mode: RESTORE_DEFAULT_OFF
     web_server:
-      sorting_weight: 3
+      sorting_weight: ${relay_day_sorting_weight}
     on_turn_on:
       then:
         - logger.log:
@@ -294,7 +318,7 @@ light:
     icon: "${relay_night_icon}"
     restore_mode: RESTORE_DEFAULT_OFF
     web_server:
-      sorting_weight: 4
+      sorting_weight: ${relay_night_sorting_weight}
     on_turn_on:
       then:
         - logger.log:
@@ -357,7 +381,7 @@ sensor:
       on_value:
         then:
           - logger.log:
-              format: "Temperature Reading Acquired: %.1f"
+              format: "Temperature Change Detected: %.1f"
               args: ['x']
               level: INFO
     humidity:
@@ -370,7 +394,7 @@ sensor:
       on_value:
         then:
           - logger.log:
-              format: "Humidity Reading Acquired: %.1f"
+              format: "Humidity Change Detected: %.1f"
               args: ['x']
               level: INFO
           - if:
