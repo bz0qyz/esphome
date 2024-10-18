@@ -293,19 +293,22 @@ light:
             transition_length: 100ms
 
 button:
-#  - id: !extend restart_button
-#    web_server_sorting_weight: 11
+  - id: !extend restart_button
+    web_server:
+      sorting_weight: 11
 
 sensor:
-#  - id: !extend uptime_sensor
-#    web_server_sorting_weight: 10
+  - id: !extend uptime_sensor
+    web_server:
+      sorting_weight: 10
 
   - platform: sun
     name: Sun Elevation
     type: elevation
     update_interval: 60s
     entity_category: "DIAGNOSTIC"
-    web_server_sorting_weight: 3
+    web_server:
+      sorting_weight: 3
 
   - platform: dht
     id: dht_sensor
