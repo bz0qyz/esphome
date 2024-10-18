@@ -377,12 +377,13 @@ sensor:
                       - lambda: 'return id(auto_humidity_mist).state;'
                     then:
                       - logger.log:
-                          format: "Humidity is below threshold."
+                          format: "Humidity is below threshold. Not turning on mist since the auto-mist duration has not passed."
                           level: WARN
                     else:
                       - logger.log:
-                          format: "Humidity is below threshold. Not turning on mist since the auto-mist duration has not passed."
+                          format: "Humidity is below threshold."
                           level: WARN
+
 
     update_interval: 60s
 
