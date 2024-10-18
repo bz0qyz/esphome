@@ -100,7 +100,7 @@ web_server:
       sorting_weight: 5
     # Diagnostic
     - id: system_diagnostic
-      name: "System Diagnostic"
+      name: "Diagnostic"
       sorting_weight: 6
     - id: light_diagnostic
       name: "Light Diagnostic"
@@ -478,18 +478,6 @@ sensor:
                           level: WARN
 
 text_sensor:
-  - platform: wifi_info
-    ip_address:
-      id: !extend esp_wifi_address
-      web_server:
-        sorting_group_id: system_diagnostic
-        sorting_weight: 5
-    ssid:
-      id: !extend esp_wifi_ssid
-      web_server:
-        sorting_group_id: system_diagnostic
-        sorting_weight: 6
-
   - platform: sun
     id: next_sunrise
     name: "Next Sunrise"
