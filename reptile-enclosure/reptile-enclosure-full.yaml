@@ -292,13 +292,13 @@ light:
             id: light_status
             transition_length: 100ms
 
-#button:
+button:
 #  - id: !extend restart_button
 #    web_server_sorting_weight: 11
 
 sensor:
-  - id: !extend uptime_sensor
-    web_server_sorting_weight: 10
+#  - id: !extend uptime_sensor
+#    web_server_sorting_weight: 10
 
   - platform: sun
     name: Sun Elevation
