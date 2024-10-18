@@ -347,6 +347,7 @@ sensor:
         then:
           - logger.log:
               format: "Humidity Reading Acquired: %.1f"
+              level: INFO
     update_interval: 60s
 
 text_sensor:
