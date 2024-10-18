@@ -478,14 +478,10 @@ sensor:
                           level: WARN
 
 text_sensor:
-  - id: !extend esp_wifi_address
+  - id: !extend esp_wifi_info
     web_server:
       sorting_group_id: system_diagnostic
       sorting_weight: 5
-  - id: !extend esp_wifi_ssid
-    web_server:
-      sorting_group_id: system_diagnostic
-      sorting_weight: 6
 
   - platform: sun
     id: next_sunrise
