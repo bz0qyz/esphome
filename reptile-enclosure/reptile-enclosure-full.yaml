@@ -23,8 +23,8 @@ substitutions:
   # Temperature and Humidity AM2120
   dht_sensor_pin: GPIO09
   temperature_unit: "°C"
-  temp_sorting_weight: 6
-  humidity_sorting_weight: 7
+  temp_sorting_weight: "6"
+  humidity_sorting_weight: "7"
 #  temperature_unit: "°F"
   # Mist Motor relay. TIP120
   mist_pump_pin: GPIO1
