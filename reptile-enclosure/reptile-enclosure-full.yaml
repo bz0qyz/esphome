@@ -70,7 +70,8 @@ select:
     optimistic: True
     icon: "mdi:auto-mode"
     entity_category: "CONFIG"
-    web_server_sorting_weight: 9
+    web_server:
+      sorting_weight: 9
     options:
       - "${mode_sun}"
       - "${mode_time}"
@@ -90,7 +91,8 @@ datetime:
     type: time
     optimistic: True
     restore_value: True
-    web_server_sorting_weight: 10
+    web_server:
+      sorting_weight: 10
     entity_category: "CONFIG"
 
   - platform: template
@@ -100,7 +102,8 @@ datetime:
     type: time
     optimistic: True
     restore_value: True
-    web_server_sorting_weight: 11
+    web_server:
+      sorting_weight: 11
     entity_category: "CONFIG"
 
   - platform: template
@@ -125,7 +128,8 @@ number:
     optimistic: True
     restore_value: True
     entity_category: "CONFIG"
-    web_server_sorting_weight: 12
+    web_server:
+      sorting_weight: 12
   - platform: template
     id: auto_mist_humidity
     name: "Humidity Mist Threshold (%)"
@@ -138,7 +142,8 @@ number:
     optimistic: True
     restore_value: True
     entity_category: "CONFIG"
-    web_server_sorting_weight: 12
+    web_server:
+      sorting_weight: 12
   - platform: template
     id: auto_mist_timer
     name: "Auto-mist delay timer (min)"
@@ -150,7 +155,8 @@ number:
     optimistic: True
     restore_value: True
     entity_category: "CONFIG"
-    web_server_sorting_weight: 13
+    web_server:
+      sorting_weight: 13
 
 switch:
   - platform: template
@@ -160,12 +166,14 @@ switch:
     optimistic: True
     restore_mode: RESTORE_DEFAULT_ON
     entity_category: "CONFIG"
-    web_server_sorting_weight: 14
+    web_server:
+      sorting_weight: 14
   - platform: gpio
     id: mist_pump
     name: "Mister"
     icon: "mdi:sprinkler-fire"
-    web_server_sorting_weight: 5
+    web_server:
+      sorting_weight: 5
     pin:
       number: ${mist_pump_pin}
       inverted: True
@@ -222,7 +230,8 @@ light:
     name: "${light_status_name}"
     id: light_status
     internal: True
-    web_server_sorting_weight: 5
+    web_server:
+      sorting_weight: 5
     restore_mode: RESTORE_DEFAULT_OFF
     effects:
       - flicker:
@@ -241,7 +250,8 @@ light:
     output: "relay_day_output"
     icon: "${relay_day_icon}"
     restore_mode: RESTORE_DEFAULT_OFF
-    web_server_sorting_weight: 3
+    web_server:
+      sorting_weight: 3
     on_turn_on:
       then:
         - logger.log:
@@ -270,7 +280,8 @@ light:
     output: "relay_night_output"
     icon: "${relay_night_icon}"
     restore_mode: RESTORE_DEFAULT_OFF
-    web_server_sorting_weight: 4
+    web_server:
+      sorting_weight: 4
     on_turn_on:
       then:
         - logger.log:
@@ -317,11 +328,13 @@ sensor:
     temperature:
       name: "Temperature"
       icon: "mdi:thermometer"
-      web_server_sorting_weight: 6
+      web_server:
+        sorting_weight: 6
     humidity:
       name: "Humidity"
       icon: "mdi:water-percent"
-      web_server_sorting_weight: 7
+      web_server:
+        sorting_weight: 7
     update_interval: 60s
 
 text_sensor:
@@ -331,7 +344,8 @@ text_sensor:
     type: sunrise
     update_interval: 60s
     entity_category: "DIAGNOSTIC"
-    web_server_sorting_weight: 4
+    web_server:
+      sorting_weight: 4
 
   - platform: sun
     id: next_sunset
@@ -339,7 +353,8 @@ text_sensor:
     type: sunset
     update_interval: 60s
     entity_category: "DIAGNOSTIC"
-    web_server_sorting_weight: 5
+    web_server:
+      sorting_weight: 5
 
 binary_sensor:
   - platform: template
@@ -347,7 +362,8 @@ binary_sensor:
     id: snmp_time_is_valid
     icon: "mdi:web-clock"
     entity_category: DIAGNOSTIC
-    web_server_sorting_weight: 1
+    web_server:
+      sorting_weight: 1
     lambda: 'return id(ntp_time).now().is_valid();'
 
   - platform: template
@@ -379,7 +395,8 @@ binary_sensor:
     id: is_day_time
     icon: "mdi:sun-clock"
     entity_category: DIAGNOSTIC
-    web_server_sorting_weight: 2
+    web_server:
+      sorting_weight: 2
     lambda: |-
       // Verify that the light mode is automatic
       if (id(light_run_mode).state == "${mode_manual}") {
