@@ -337,6 +337,7 @@ sensor:
         then:
           - logger.log:
               format: "Temperature Reading Acquired: %.1f"
+              args: ['x']
               level: INFO
     humidity:
       name: "Humidity"
@@ -347,6 +348,7 @@ sensor:
         then:
           - logger.log:
               format: "Humidity Reading Acquired: %.1f"
+              args: ['x']
               level: INFO
     update_interval: 60s
 
