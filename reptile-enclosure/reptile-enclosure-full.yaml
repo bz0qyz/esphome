@@ -162,6 +162,15 @@ number:
 
 switch:
   - platform: template
+    id: auto_humidity_mist
+    name: "Mist on Low Humidity"
+    icon: "mdi:sprinkler-fire"
+    optimistic: True
+    restore_mode: RESTORE_DEFAULT_ON
+    entity_category: "CONFIG"
+    web_server:
+      sorting_weight: 14
+  - platform: template
     id: auto_light_change_mist
     name: "Mist on Light Change"
     icon: "mdi:sprinkler-fire"
@@ -169,7 +178,7 @@ switch:
     restore_mode: RESTORE_DEFAULT_ON
     entity_category: "CONFIG"
     web_server:
-      sorting_weight: 14
+      sorting_weight: 15
   - platform: gpio
     id: mist_pump
     name: "Mister"
@@ -350,6 +359,31 @@ sensor:
               format: "Humidity Reading Acquired: %.1f"
               args: ['x']
               level: INFO
+          - if:
+              condition:
+                - lambda: 'return id(auto_humidity_mist).state;'
+                - lambda: |-
+                    if (id(auto_mist_humidity).state > x) {
+                      return true;
+                    } else {
+                      return false;
+                    }
+                - lambda: 'return id(can_do_mist).state;'
+              then:
+                - switch.turn_on: mist_pump
+              else:
+                - if:
+                    condition:
+                      - lambda: 'return id(auto_humidity_mist).state;'
+                    then:
+                      - logger.log:
+                          format: "Humidity is below threshold."
+                          level: WARNING
+                    else:
+                      - logger.log:
+                          format: "Humidity is below threshold. Not turning on mist since the auto-mist duration has not passed."
+                          level: WARNING
+
     update_interval: 60s
 
 text_sensor:
