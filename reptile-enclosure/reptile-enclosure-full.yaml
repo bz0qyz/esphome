@@ -58,22 +58,33 @@ web_server:
   id: !extend web_server
   version: 3
   sorting_groups:
+    # Sensor and Control
     - id: light_controls
       name: "Light Controls"
-      icon: "mdi:lightbulb"
-      entities:
-        - light_day
-        - light_night
+      sorting_weight: 1
     - id: mist_controls
       name: "Mist Controls"
-      icon: "mdi:sprinkler"
-      entities:
-        - mist_pump
+      sorting_weight: 2
     - id: environment_sensors
       name: "Environment Sensors"
-      icon: "mdi:thermometer"
-      entities:
-        - dht_sensor
+      sorting_weight: 3
+    # Configuration
+    - id: light_configuration
+      name: "Light Configuration"
+      sorting_weight: 1
+    - id: mist_configuration
+      name: "Mist Configuration"
+      sorting_weight: 2
+    # Diagnostic
+    - id: system_diagnostic
+      name: "System Diagnostic"
+      sorting_weight: 1
+    - id: light_diagnostic
+      name: "Light Diagnostic"
+      sorting_weight: 2
+    - id: mist_diagnostic
+      name: "Mist Diagnostic"
+      sorting_weight: 3
 
 
 time:
@@ -99,6 +110,7 @@ select:
     icon: "mdi:auto-mode"
     entity_category: "CONFIG"
     web_server:
+      sorting_group_id: light_configuration
       sorting_weight: 9
     options:
       - "${mode_sun}"
@@ -120,6 +132,7 @@ datetime:
     optimistic: True
     restore_value: True
     web_server:
+      sorting_group_id: light_configuration
       sorting_weight: 10
     entity_category: "CONFIG"
 
@@ -131,6 +144,7 @@ datetime:
     optimistic: True
     restore_value: True
     web_server:
+      sorting_group_id: light_configuration
       sorting_weight: 11
     entity_category: "CONFIG"
 
@@ -143,6 +157,9 @@ datetime:
     optimistic: True
     restore_value: True
     update_interval: never
+    web_server:
+      sorting_group_id: mist_diagnostic
+      sorting_weight: 6
 
 number:
   - platform: template
@@ -157,6 +174,7 @@ number:
     restore_value: True
     entity_category: "CONFIG"
     web_server:
+      sorting_group_id: mist_configuration
       sorting_weight: 12
   - platform: template
     id: auto_mist_humidity
@@ -171,6 +189,7 @@ number:
     restore_value: True
     entity_category: "CONFIG"
     web_server:
+      sorting_group_id: mist_configuration
       sorting_weight: 12
   - platform: template
     id: auto_mist_timer
@@ -184,6 +203,7 @@ number:
     restore_value: True
     entity_category: "CONFIG"
     web_server:
+      sorting_group_id: mist_configuration
       sorting_weight: 13
 
 switch:
@@ -195,6 +215,7 @@ switch:
     restore_mode: RESTORE_DEFAULT_ON
     entity_category: "CONFIG"
     web_server:
+      sorting_group_id: mist_configuration
       sorting_weight: 14
   - platform: template
     id: auto_light_change_mist
@@ -204,12 +225,14 @@ switch:
     restore_mode: RESTORE_DEFAULT_ON
     entity_category: "CONFIG"
     web_server:
+      sorting_group_id: light_configuration
       sorting_weight: 15
   - platform: gpio
     id: mist_pump
     name: "Mister"
     icon: "mdi:sprinkler-fire"
     web_server:
+      sorting_group_id: mist_controls
       sorting_weight: 5
     pin:
       number: ${mist_pump_pin}
@@ -267,8 +290,6 @@ light:
     name: "${light_status_name}"
     id: light_status
     internal: True
-    web_server:
-      sorting_weight: 5
     restore_mode: RESTORE_DEFAULT_OFF
     effects:
       - flicker:
@@ -288,6 +309,7 @@ light:
     icon: "${relay_day_icon}"
     restore_mode: RESTORE_DEFAULT_OFF
     web_server:
+      sorting_group_id: light_controls
       sorting_weight: ${relay_day_sorting_weight}
     on_turn_on:
       then:
@@ -318,6 +340,7 @@ light:
     icon: "${relay_night_icon}"
     restore_mode: RESTORE_DEFAULT_OFF
     web_server:
+      sorting_group_id: light_controls
       sorting_weight: ${relay_night_sorting_weight}
     on_turn_on:
       then:
@@ -343,11 +366,13 @@ light:
 button:
   - id: !extend restart_button
     web_server:
+      sorting_group_id: system_diagnostic
       sorting_weight: 11
 
 sensor:
   - id: !extend uptime_sensor
     web_server:
+      sorting_group_id: system_diagnostic
       sorting_weight: 10
 
   - platform: sun
@@ -356,6 +381,7 @@ sensor:
     update_interval: 60s
     entity_category: "DIAGNOSTIC"
     web_server:
+      sorting_group_id: light_diagnostic
       sorting_weight: 3
 
   - platform: dht
@@ -368,6 +394,7 @@ sensor:
       icon: "mdi:thermometer"
       unit_of_measurement: ${temperature_unit}
       web_server:
+        sorting_group_id: environment_sensors
         sorting_weight: ${temp_sorting_weight}
       filters:
         - delta: 1.0
@@ -388,6 +415,7 @@ sensor:
       name: "Humidity"
       icon: "mdi:water-percent"
       web_server:
+        sorting_group_id: environment_sensors
         sorting_weight: ${humidity_sorting_weight}
       filters:
         - delta: 1.0
@@ -429,6 +457,7 @@ text_sensor:
     update_interval: 60s
     entity_category: "DIAGNOSTIC"
     web_server:
+      sorting_group_id: light_diagnostic
       sorting_weight: 4
 
   - platform: sun
@@ -438,6 +467,7 @@ text_sensor:
     update_interval: 60s
     entity_category: "DIAGNOSTIC"
     web_server:
+      sorting_group_id: light_diagnostic
       sorting_weight: 5
 
 binary_sensor:
@@ -447,6 +477,7 @@ binary_sensor:
     icon: "mdi:web-clock"
     entity_category: DIAGNOSTIC
     web_server:
+      sorting_group_id: system_diagnostic
       sorting_weight: 1
     lambda: 'return id(ntp_time).now().is_valid();'
 
@@ -480,6 +511,7 @@ binary_sensor:
     icon: "mdi:sun-clock"
     entity_category: DIAGNOSTIC
     web_server:
+      sorting_group_id: light_diagnostic
       sorting_weight: 2
     lambda: |-
       // Verify that the light mode is automatic
