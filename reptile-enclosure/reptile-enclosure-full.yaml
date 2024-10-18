@@ -23,6 +23,8 @@ substitutions:
   # Temperature and Humidity AM2120
   dht_sensor_pin: GPIO09
   temperature_unit: "°C"
+  temp_sorting_weight: 6
+  humidity_sorting_weight: 7
 #  temperature_unit: "°F"
   # Mist Motor relay. TIP120
   mist_pump_pin: GPIO1
@@ -340,8 +342,18 @@ sensor:
       name: "Temperature"
       icon: "mdi:thermometer"
       unit_of_measurement: ${temperature_unit}
+      update_interval: 300s
       web_server:
-        sorting_weight: 6
+        sorting_weight: ${temp_sorting_weight}
+      filters:
+        - delta: 2%
+        - lambda: |-
+            if ("${temperature_unit}" == "°F") {
+              ESP_LOGI("temp", "Converting Temperature to Fahrenheit: %.0f.", x);
+              return x * 9.0 / 5.0 + 32.0;
+            } else {
+              return x;
+            }
       on_value:
         then:
           - logger.log:
@@ -352,7 +364,9 @@ sensor:
       name: "Humidity"
       icon: "mdi:water-percent"
       web_server:
-        sorting_weight: 7
+        sorting_weight: ${humidity_sorting_weight}
+      filters:
+        - delta: 2%
       on_value:
         then:
           - logger.log:
@@ -361,31 +375,27 @@ sensor:
               level: INFO
           - if:
               condition:
-                - lambda: 'return id(auto_humidity_mist).state;'
                 - lambda: |-
                     if (id(auto_mist_humidity).state > x) {
                       return true;
                     } else {
                       return false;
                     }
-                - lambda: 'return id(can_do_mist).state;'
               then:
-                - switch.turn_on: mist_pump
-              else:
+                - logger.log:
+                    format: "Current Humidity: %.0f is below threshold: %.0f"
+                    args: [ 'x', 'id(auto_mist_humidity).state' ]
+                    level: WARN
                 - if:
                     condition:
                       - lambda: 'return id(auto_humidity_mist).state;'
+                      - lambda: 'return id(can_do_mist).state;'
                     then:
-                      - logger.log:
-                          format: "Humidity is below threshold. Not misting since the auto-mist delay has not passed."
-                          level: WARN
+                      - switch.turn_on: mist_pump
                     else:
                       - logger.log:
-                          format: "Humidity is below threshold."
+                          format: "Not misting since auto-mist is disabled or the auto-mist delay has not passed."
                           level: WARN
-
-
-    update_interval: 60s
 
 text_sensor:
   - platform: sun
