@@ -396,7 +396,7 @@ sensor:
     web_server:
       sorting_group_id: system_diagnostic
       sorting_weight: ${uptime_sorting_weight}
-  - id: !extend internal_temperature
+  - id: !extend cpu_temperature_sensor
     web_server:
       sorting_group_id: system_diagnostic
       sorting_weight: ${internal_temp_sorting_weight}
