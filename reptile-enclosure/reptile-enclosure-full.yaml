@@ -346,7 +346,7 @@ sensor:
       web_server:
         sorting_weight: ${temp_sorting_weight}
       filters:
-        - delta: 2%
+        - delta: 1.0
         - lambda: |-
             if ("${temperature_unit}" == "°F") {
               ESP_LOGI("temp", "Converting Temperature to Fahrenheit: %.0f.", x);
@@ -366,7 +366,7 @@ sensor:
       web_server:
         sorting_weight: ${humidity_sorting_weight}
       filters:
-        - delta: 2%
+        - delta: 1.0
       on_value:
         then:
           - logger.log:
