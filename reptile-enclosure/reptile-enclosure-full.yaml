@@ -76,7 +76,6 @@ wifi:
 captive_portal:
 
 web_server:
-#  id: !extend the_web_server
   version: 3
   sorting_groups:
     # Sensor and Control
@@ -92,20 +91,20 @@ web_server:
     # Configuration
     - id: light_configuration
       name: "Light Configuration"
-      sorting_weight: 1
+      sorting_weight: 4
     - id: mist_configuration
       name: "Mist Configuration"
-      sorting_weight: 2
+      sorting_weight: 5
     # Diagnostic
-    - id: system_diagnostic
-      name: "System Diagnostic"
-      sorting_weight: 1
     - id: light_diagnostic
       name: "Light Diagnostic"
-      sorting_weight: 2
+      sorting_weight: 6
     - id: mist_diagnostic
       name: "Mist Diagnostic"
-      sorting_weight: 3
+      sorting_weight: 7
+    - id: system_diagnostic
+      name: "System Diagnostic"
+      sorting_weight: 8
 
 
 time:
