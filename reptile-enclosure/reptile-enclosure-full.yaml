@@ -338,11 +338,11 @@ sensor:
     id: dht_sensor
     model: AM2120
     pin: ${dht_sensor_pin}
+    update_interval: 300s
     temperature:
       name: "Temperature"
       icon: "mdi:thermometer"
       unit_of_measurement: ${temperature_unit}
-      update_interval: 300s
       web_server:
         sorting_weight: ${temp_sorting_weight}
       filters:
