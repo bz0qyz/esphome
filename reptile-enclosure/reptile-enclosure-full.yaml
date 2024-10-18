@@ -49,8 +49,10 @@ substitutions:
   mist_last_sorting_weight: "6"
   mist_duration_sorting_weight: "12"
   mist_humidity_sorting_weight: "13"
-  mist_timer_sorting_weight: "14"
-  mist_light_change_sorting_weight: "15"
+  mist_light_change_sorting_weight: "14"
+  mist_timer_sorting_weight: "15"
+  mist_allowed_sorting_weight: "16"
+
 
 
 packages:
@@ -215,7 +217,7 @@ number:
       sorting_weight: ${mist_humidity_sorting_weight}
   - platform: template
     id: auto_mist_timer
-    name: "Auto-mist delay timer (min)"
+    name: "Auto-mist minimum interval (min)"
     icon: "mdi:timer"
     mode: "box"
     min_value: 1
@@ -476,6 +478,15 @@ sensor:
                           level: WARN
 
 text_sensor:
+  - id: !extend esp_wifi_address
+    web_server:
+      sorting_group_id: system_diagnostic
+      sorting_weight: 5
+  - id: !extend esp_wifi_ssid
+    web_server:
+      sorting_group_id: system_diagnostic
+      sorting_weight: 6
+
   - platform: sun
     id: next_sunrise
     name: "Next Sunrise"
@@ -512,6 +523,9 @@ binary_sensor:
     name: "Auto-mist Allowed"
     disabled_by_default: True
     entity_category: DIAGNOSTIC
+    web_server:
+      sorting_group_id: mist_diagnostic
+      sorting_weight: ${mist_allowed_sorting_weight}
     lambda: |-
       if (id(uptime_sensor).state < 10) { return false; }
       ESPTime now = id(ntp_time).now();
