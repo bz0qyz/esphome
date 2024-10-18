@@ -34,6 +34,7 @@ substitutions:
 
   # System
   uptime_sorting_weight: "10"
+  internal_temp_sorting_weight: "11"
   time_sync_sorting_weight: "1"
   # Light
   sun_elevation_sorting_weight: "3"
@@ -80,13 +81,13 @@ web_server:
   sorting_groups:
     # Sensor and Control
     - id: light_controls
-      name: "Light Controls"
+      name: "Light Control"
       sorting_weight: 1
     - id: mist_controls
-      name: "Mist Controls"
+      name: "Mist Control"
       sorting_weight: 2
     - id: environment_sensors
-      name: "Environment Sensors"
+      name: "Environment"
       sorting_weight: 3
     # Configuration
     - id: light_configuration
@@ -96,15 +97,16 @@ web_server:
       name: "Mist Configuration"
       sorting_weight: 5
     # Diagnostic
+    - id: system_diagnostic
+      name: "System Diagnostic"
+      sorting_weight: 6
     - id: light_diagnostic
       name: "Light Diagnostic"
       sorting_weight: 6
     - id: mist_diagnostic
       name: "Mist Diagnostic"
       sorting_weight: 7
-    - id: system_diagnostic
-      name: "System Diagnostic"
-      sorting_weight: 8
+
 
 
 time:
@@ -245,7 +247,7 @@ switch:
     restore_mode: RESTORE_DEFAULT_ON
     entity_category: "CONFIG"
     web_server:
-      sorting_group_id: light_configuration
+      sorting_group_id: mist_configuration
       sorting_weight: ${mist_light_change_sorting_weight}
   - platform: gpio
     id: mist_pump
@@ -394,6 +396,10 @@ sensor:
     web_server:
       sorting_group_id: system_diagnostic
       sorting_weight: ${uptime_sorting_weight}
+  - id: !extend internal_temperature
+    web_server:
+      sorting_group_id: system_diagnostic
+      sorting_weight: ${internal_temp_sorting_weight}
 
   - platform: sun
     name: Sun Elevation
