@@ -50,7 +50,6 @@ substitutions:
   mist_humidity_sorting_weight: "13"
   mist_timer_sorting_weight: "14"
   mist_light_change_sorting_weight: "15"
-  mist_humidity_sorting_weight: "13"
 
 
 packages:
