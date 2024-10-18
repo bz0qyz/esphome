@@ -333,11 +333,20 @@ sensor:
       unit_of_measurement: ${temperature_unit}
       web_server:
         sorting_weight: 6
+      on_value:
+        then:
+          - logger.log:
+              format: "Temperature Reading Acquired: %.1f"
+              level: INFO
     humidity:
       name: "Humidity"
       icon: "mdi:water-percent"
       web_server:
         sorting_weight: 7
+      on_value:
+        then:
+          - logger.log:
+              format: "Humidity Reading Acquired: %.1f"
     update_interval: 60s
 
 text_sensor:
