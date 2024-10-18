@@ -75,37 +75,37 @@ wifi:
   ap:
 captive_portal:
 
-#web_server:
+web_server:
 #  id: !extend the_web_server
-#  version: 3
-#  sorting_groups:
-#    # Sensor and Control
-#    - id: light_controls
-#      name: "Light Controls"
-#      sorting_weight: 1
-#    - id: mist_controls
-#      name: "Mist Controls"
-#      sorting_weight: 2
-#    - id: environment_sensors
-#      name: "Environment Sensors"
-#      sorting_weight: 3
-#    # Configuration
-#    - id: light_configuration
-#      name: "Light Configuration"
-#      sorting_weight: 1
-#    - id: mist_configuration
-#      name: "Mist Configuration"
-#      sorting_weight: 2
-#    # Diagnostic
-#    - id: system_diagnostic
-#      name: "System Diagnostic"
-#      sorting_weight: 1
-#    - id: light_diagnostic
-#      name: "Light Diagnostic"
-#      sorting_weight: 2
-#    - id: mist_diagnostic
-#      name: "Mist Diagnostic"
-#      sorting_weight: 3
+  version: 3
+  sorting_groups:
+    # Sensor and Control
+    - id: light_controls
+      name: "Light Controls"
+      sorting_weight: 1
+    - id: mist_controls
+      name: "Mist Controls"
+      sorting_weight: 2
+    - id: environment_sensors
+      name: "Environment Sensors"
+      sorting_weight: 3
+    # Configuration
+    - id: light_configuration
+      name: "Light Configuration"
+      sorting_weight: 1
+    - id: mist_configuration
+      name: "Mist Configuration"
+      sorting_weight: 2
+    # Diagnostic
+    - id: system_diagnostic
+      name: "System Diagnostic"
+      sorting_weight: 1
+    - id: light_diagnostic
+      name: "Light Diagnostic"
+      sorting_weight: 2
+    - id: mist_diagnostic
+      name: "Mist Diagnostic"
+      sorting_weight: 3
 
 
 time:
