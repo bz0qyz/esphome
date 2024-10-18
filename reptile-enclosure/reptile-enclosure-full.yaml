@@ -18,18 +18,40 @@ substitutions:
   light_status_name: "Status"
   light_status_pin: GPIO10
   light_status_brightness: "40"
-  # run modes
-  mode_sun: "Sunrise/Sunset"
-  mode_time: "Time"
-  mode_manual: "Manual"
   # Temperature and Humidity AM2120
   dht_sensor_pin: GPIO09
   temperature_unit: "°C"
   temp_sorting_weight: "6"
   humidity_sorting_weight: "7"
-#  temperature_unit: "°F"
+  #  temperature_unit: "°F"
   # Mist Motor relay. TIP120
   mist_pump_pin: GPIO1
+  # run modes
+  mode_sun: "Sunrise/Sunset"
+  mode_time: "Time"
+  mode_manual: "Manual"
+  mode_sorting_weight: "9"
+
+  # System
+  uptime_sorting_weight: "10"
+  time_sync_sorting_weight: "1"
+  # Light
+  sun_elevation_sorting_weight: "3"
+  sun_sunrise_sorting_weight: "4"
+  sun_sunset_sorting_weight: "5"
+  sun_daytime_sorting_weight: "2"
+  # Time
+  day_start_sorting_weight: "10"
+  night_start_sorting_weight: "11"
+  # Mist
+  mist_pump_sorting_weight: "5"
+  mist_last_sorting_weight: "6"
+  mist_duration_sorting_weight: "12"
+  mist_humidity_sorting_weight: "13"
+  mist_timer_sorting_weight: "14"
+  mist_light_change_sorting_weight: "15"
+  mist_timer_sorting_weight: "13"
+
 
 packages:
   diagnostic-entities: !include ../common/diagnostic-entities.yaml
@@ -55,7 +77,7 @@ wifi:
 captive_portal:
 
 web_server:
-  id: !extend web_server
+  id: !extend the_web_server
   version: 3
   sorting_groups:
     # Sensor and Control
@@ -111,7 +133,7 @@ select:
     entity_category: "CONFIG"
     web_server:
       sorting_group_id: light_configuration
-      sorting_weight: 9
+      sorting_weight: ${mode_sorting_weight}
     options:
       - "${mode_sun}"
       - "${mode_time}"
@@ -133,7 +155,7 @@ datetime:
     restore_value: True
     web_server:
       sorting_group_id: light_configuration
-      sorting_weight: 10
+      sorting_weight: ${day_start_sorting_weight}
     entity_category: "CONFIG"
 
   - platform: template
@@ -145,7 +167,7 @@ datetime:
     restore_value: True
     web_server:
       sorting_group_id: light_configuration
-      sorting_weight: 11
+      sorting_weight: ${night_start_sorting_weight}
     entity_category: "CONFIG"
 
   - platform: template
@@ -159,7 +181,7 @@ datetime:
     update_interval: never
     web_server:
       sorting_group_id: mist_diagnostic
-      sorting_weight: 6
+      sorting_weight: ${mist_last_sorting_weight}
 
 number:
   - platform: template
@@ -175,7 +197,7 @@ number:
     entity_category: "CONFIG"
     web_server:
       sorting_group_id: mist_configuration
-      sorting_weight: 12
+      sorting_weight: ${mist_duration_sorting_weight}
   - platform: template
     id: auto_mist_humidity
     name: "Humidity Mist Threshold (%)"
@@ -190,7 +212,7 @@ number:
     entity_category: "CONFIG"
     web_server:
       sorting_group_id: mist_configuration
-      sorting_weight: 12
+      sorting_weight: ${mist_humidity_sorting_weight}
   - platform: template
     id: auto_mist_timer
     name: "Auto-mist delay timer (min)"
@@ -204,7 +226,7 @@ number:
     entity_category: "CONFIG"
     web_server:
       sorting_group_id: mist_configuration
-      sorting_weight: 13
+      sorting_weight: ${mist_timer_sorting_weight}
 
 switch:
   - platform: template
@@ -216,7 +238,7 @@ switch:
     entity_category: "CONFIG"
     web_server:
       sorting_group_id: mist_configuration
-      sorting_weight: 14
+      sorting_weight: ${mist_timer_sorting_weight}
   - platform: template
     id: auto_light_change_mist
     name: "Mist on Light Change"
@@ -226,14 +248,14 @@ switch:
     entity_category: "CONFIG"
     web_server:
       sorting_group_id: light_configuration
-      sorting_weight: 15
+      sorting_weight: ${mist_light_change_sorting_weight}
   - platform: gpio
     id: mist_pump
     name: "Mister"
     icon: "mdi:sprinkler-fire"
     web_server:
       sorting_group_id: mist_controls
-      sorting_weight: 5
+      sorting_weight: ${mist_pump_sorting_weight}
     pin:
       number: ${mist_pump_pin}
       inverted: True
@@ -373,7 +395,7 @@ sensor:
   - id: !extend uptime_sensor
     web_server:
       sorting_group_id: system_diagnostic
-      sorting_weight: 10
+      sorting_weight: ${uptime_sorting_weight}
 
   - platform: sun
     name: Sun Elevation
@@ -382,7 +404,7 @@ sensor:
     entity_category: "DIAGNOSTIC"
     web_server:
       sorting_group_id: light_diagnostic
-      sorting_weight: 3
+      sorting_weight: ${sun_elevation_sorting_weight}
 
   - platform: dht
     id: dht_sensor
@@ -458,7 +480,7 @@ text_sensor:
     entity_category: "DIAGNOSTIC"
     web_server:
       sorting_group_id: light_diagnostic
-      sorting_weight: 4
+      sorting_weight: ${sun_sunrise_sorting_weight}
 
   - platform: sun
     id: next_sunset
@@ -468,7 +490,7 @@ text_sensor:
     entity_category: "DIAGNOSTIC"
     web_server:
       sorting_group_id: light_diagnostic
-      sorting_weight: 5
+      sorting_weight: ${sun_sunset_sorting_weight}
 
 binary_sensor:
   - platform: template
@@ -478,7 +500,7 @@ binary_sensor:
     entity_category: DIAGNOSTIC
     web_server:
       sorting_group_id: system_diagnostic
-      sorting_weight: 1
+      sorting_weight: ${time_sync_sorting_weight}
     lambda: 'return id(ntp_time).now().is_valid();'
 
   - platform: template
@@ -512,7 +534,7 @@ binary_sensor:
     entity_category: DIAGNOSTIC
     web_server:
       sorting_group_id: light_diagnostic
-      sorting_weight: 2
+      sorting_weight: ${sun_daytime_sorting_weight}
     lambda: |-
       // Verify that the light mode is automatic
       if (id(light_run_mode).state == "${mode_manual}") {
