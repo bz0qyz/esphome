@@ -55,15 +55,13 @@ substitutions:
   mist_humidity_sorting_weight: "16"
   mist_allowed_sorting_weight: "16"
 
-
-
 packages:
   diagnostic-entities: !include ../common/diagnostic-entities.yaml
 
 esphome:
   name: ${device_name}
   friendly_name: ${friendly_device_name}
-  min_version: 2024.6.0
+  min_version: 2024.10.0
 
 esp32:
   board: esp32-c3-devkitm-1
