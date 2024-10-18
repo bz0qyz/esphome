@@ -22,8 +22,8 @@ substitutions:
   mode_manual: "Manual"
   # Temperature and Humidity AM2120
   dht_sensor_pin: GPIO09
-  #temperature_unit: "°C"
-  temperature_unit: "°F"
+  temperature_unit: "°C"
+#  temperature_unit: "°F"
   # Mist Motor relay. TIP120
   mist_pump_pin: GPIO1
 
