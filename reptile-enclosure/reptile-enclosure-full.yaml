@@ -8,12 +8,12 @@ substitutions:
   relay_day_name: "Day"
   relay_day_icon: "mdi:weather-sunny"
   relay_day_sorting_weight: "1"
-  relay_day_pin: GPIO2
+  relay_day_pin: GPIO3
   # relay switch gpio for Night
   relay_night_name: "Night"
   relay_night_icon: "mdi:weather-night"
   relay_night_sorting_weight: "1"
-  relay_night_pin: GPIO3
+  relay_night_pin: GPIO4
   # light gpio
   light_status_name: "Status"
   light_status_pin: GPIO10
@@ -109,8 +109,6 @@ web_server:
       name: "Mist Diagnostic"
       sorting_weight: 8
 
-
-
 time:
   - platform: sntp
     id: ntp_time
@@ -191,8 +189,8 @@ number:
     name: "Mist duration (sec)"
     icon: "mdi:sprinkler-fire"
     mode: "slider"
-    min_value: 1
-    max_value: 20
+    min_value: 5
+    max_value: 60
     step: 1
     optimistic: True
     restore_value: True
@@ -293,7 +291,6 @@ sun:
   latitude: 33.0142765°
   longitude: -97.025589°
 
-
 output:
   - platform: gpio
     id: "relay_day_output"
@@ -355,7 +352,6 @@ light:
         - light.turn_off:
             id: light_status
             transition_length: 100ms
-
 
   - platform: binary
     id: light_night
