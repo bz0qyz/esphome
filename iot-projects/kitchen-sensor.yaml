@@ -1,0 +1,384 @@
+substitutions:
+  device_name: "kitchen-sensor"
+  friendly_devicename: "Kitchen Sensor"
+  outdoor_sensor_mac_address: !secret mac_outdoor_sensor
+  indoor_sensor_mac_address: !secret mac_indoor_sensor
+  # mmwave sensor uart pins
+  pin_prx: GPIO01
+  pin_ptx: GPIO03
+  # the timezone for ntp_time
+  timezone: "America/Chicago"
+
+globals:
+  - id: outdoor_sensor_temp_c
+    type: float
+    restore_value: True
+    initial_value: '0'
+  - id: outdoor_sensor_humidity
+    type: float
+    restore_value: True
+    initial_value: '0'
+  - id: outdoor_sensor_battery_level
+    type: float
+    restore_value: True
+    initial_value: '0'
+  - id: indoor_sensor_temp_c
+    type: float
+    restore_value: True
+    initial_value: '0'
+  - id: indoor_sensor_humidity
+    type: float
+    restore_value: True
+    initial_value: '0'
+  - id: indoor_sensor_battery_level
+    type: float
+    restore_value: True
+    initial_value: '0'
+
+esphome:
+  name: ${device_name}
+  friendly_name: ${friendly_devicename}
+  area: Kitchen
+
+esp32:
+  #board: esp32dev
+  board: wemos_d1_mini32
+  framework:
+    type: arduino
+
+logger:
+  level: INFO
+  baud_rate: 0
+
+# Enable Home Assistant API
+api:
+  encryption:
+    key: !secret encryption_key
+  on_client_connected:
+    - logger.log:
+        format: "Starting API triggered BLE scan"
+        level: INFO
+    - esp32_ble_tracker.start_scan:
+  # on_client_disconnected:
+  #   - esp32_ble_tracker.stop_scan:
+  #   - logger.log:
+  #       format: "Stopping API triggered BLE scan"
+  #       level: INFO
+
+ota:
+  - platform: esphome
+    password: !secret ota_password
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+
+# web_server:
+#   id: the_web_server
+#   port: 8080
+#   ota: False
+#   log: True
+#   local: True
+#   version: 3
+
+time:
+  - platform: sntp
+    id: ntp_time
+    timezone: ${timezone}
+    servers:
+      - 0.pool.ntp.org
+      - 1.pool.ntp.org
+      - 2.pool.ntp.org
+    on_time_sync:
+      then:
+        - logger.log:
+            format: "Time Synchronized over ntp"
+            level: INFO
+    on_time:
+      # Every 5 minutes
+      - seconds: 0
+        minutes: /5
+        then:
+          - esp32_ble_tracker.start_scan:
+          - logger.log:
+              format: "Starting time triggered BLE scan"
+              level: INFO
+
+# LD2410C Presence Sensor
+ld2410:
+  id: ld2410_radar
+uart:
+  tx_pin: ${pin_ptx}
+  rx_pin: ${pin_prx}
+  baud_rate: 256000
+  parity: NONE
+  stop_bits: 1
+switch:
+  - platform: ld2410
+    bluetooth:
+      name: "ld2410 bluetooth"
+      entity_category: "DIAGNOSTIC"
+button:
+  - platform: restart
+    id: restart_button
+    name: Restart
+    entity_category: "DIAGNOSTIC"
+  - platform: ld2410
+    factory_reset:
+      name: "ld2410 factory reset"
+      entity_category: "DIAGNOSTIC"
+    restart:
+      name: "ld2410 restart"
+      entity_category: "DIAGNOSTIC"
+    query_params:
+      name: "ld2410 query params"
+      entity_category: "DIAGNOSTIC"
+
+esp32_ble_tracker:
+  scan_parameters:
+    continuous: False
+
+  on_ble_manufacturer_data_advertise:
+    # Indoor Govee Sensor
+    - mac_address: ${indoor_sensor_mac_address}
+      manufacturer_id: EC88
+      then:
+        - lambda: |-
+            // Combine the 3 bytes into a single value
+            uint32_t raw_data = (x[1] << 16) | (x[2] << 8) | x[3];
+            
+            // Govee format: encodes as (temp*1000 + humidity*10)
+            // For negative temps, they add 0x800000 (8388608)
+            bool is_negative = raw_data & 0x800000;
+            if (is_negative) {
+              raw_data = raw_data ^ 0x800000;  // Remove the sign bit
+            }
+            
+            int temp_int = raw_data / 1000;
+            int hum_int = raw_data % 1000;
+            
+            float temperature_c = temp_int / 10.0f;
+            if (is_negative) {
+              temperature_c = -temperature_c;
+            }
+            
+            const float temperature_f = (temperature_c * 1.8) + 32;
+            const float humidity = hum_int / 10.0f;
+            const float battery_level = uint16_t(x[4]) / 1.0f;
+
+            ESP_LOGI("ble_adv", "Indoor Sensor:");
+            ESP_LOGD("ble_adv", " - Raw data: %u", raw_data);
+            ESP_LOGD("ble_adv", " - Temp int: %d", temp_int);
+            ESP_LOGD("ble_adv", " - Temperature: %.2f°C", temperature_c);
+            ESP_LOGD("ble_adv", " - Humidity: %.2f%%", humidity);
+            ESP_LOGD("ble_adv", " - Battery Level: %.0f%%", battery_level);
+
+            id(indoor_sensor_temp_c) = temperature_c;
+            id(indoor_sensor_humidity) = humidity;
+            id(indoor_sensor_battery_level) = battery_level;
+
+    # Outdoor Govee Sensor
+    - mac_address: ${outdoor_sensor_mac_address}
+      manufacturer_id: EC88
+      then:
+        - lambda: |-
+            // Combine the 3 bytes into a single value
+            uint32_t raw_data = (x[1] << 16) | (x[2] << 8) | x[3];
+            
+            // Govee format: encodes as (temp*1000 + humidity*10)
+            // For negative temps, they add 0x800000 (8388608)
+            bool is_negative = raw_data & 0x800000;
+            if (is_negative) {
+              raw_data = raw_data ^ 0x800000;  // Remove the sign bit
+            }
+            
+            int temp_int = raw_data / 1000;
+            int hum_int = raw_data % 1000;
+            
+            float temperature_c = temp_int / 10.0f;
+            if (is_negative) {
+              temperature_c = -temperature_c;
+            }
+            
+            const float temperature_f = (temperature_c * 1.8) + 32;
+            const float humidity = hum_int / 10.0f;
+            const float battery_level = uint16_t(x[4]) / 1.0f;
+
+            ESP_LOGI("ble_adv", "Outdoor Sensor:");
+            ESP_LOGD("ble_adv", " - Raw data: %u", raw_data);
+            ESP_LOGD("ble_adv", " - Temp int: %d", temp_int);
+            ESP_LOGD("ble_adv", " - Temperature: %.2f°C", temperature_c);
+            ESP_LOGD("ble_adv", " - Humidity: %.2f%%", humidity);
+            ESP_LOGD("ble_adv", " - Battery Level: %.0f%%", battery_level);
+
+            id(outdoor_sensor_temp_c) = temperature_c;
+            id(outdoor_sensor_humidity) = humidity;
+            id(outdoor_sensor_battery_level) = battery_level;
+
+ble_client:
+  - mac_address: ${outdoor_sensor_mac_address}
+    id: govee_sensor_outdoor
+    auto_connect: true
+    on_connect:
+      then:
+        - logger.log: 
+            format: "Connected to Govee Outdoor Sensor"
+            level: INFO
+  - mac_address: ${indoor_sensor_mac_address}
+    id: govee_sensor_indoor
+    auto_connect: true
+    on_connect:
+      then:
+        - logger.log: 
+            format: "Connected to Govee Outdoor Sensor"
+            level: INFO
+
+sensor:
+  - platform: uptime
+    id: uptime_sensor
+    name: Uptime
+    entity_category: "DIAGNOSTIC"
+    unit_of_measurement: s
+    update_interval: 10s
+
+  # Inside Govee Sensor Values
+  - platform: template
+    name: "Inside Temperature Fahrenheit"
+    id: inside_temperature_f
+    unit_of_measurement: '°F'
+    accuracy_decimals: 0
+    icon: "mdi:thermometer"
+    update_interval: 60s
+    # web_server:
+    #   sorting_weight: 1
+    lambda: |-
+      const float indoor_temperature_f = (id(indoor_sensor_temp_c) * 1.8) + 32;
+      return indoor_temperature_f;
+
+  - platform: template
+    name: "Inside Temperature Celsius"
+    id: inside_temperature_c
+    unit_of_measurement: '°C'
+    accuracy_decimals: 0
+    icon: "mdi:thermometer"
+    update_interval: 60s
+    # web_server:
+    #   sorting_weight: 2
+    lambda: 'return id(indoor_sensor_temp_c);'
+
+  - platform: template
+    name: "Inside Humidity"
+    id: inside_humidity
+    unit_of_measurement: '%'
+    accuracy_decimals: 0
+    icon: "mdi:water-percent"
+    update_interval: 60s
+    # web_server:
+    #   sorting_weight: 3
+    lambda: 'return id(indoor_sensor_humidity);'
+
+  - platform: template
+    name: "Indoor Sensor Battery"
+    id: inside_sensor_battery
+    device_class: battery
+    unit_of_measurement: '%'
+    accuracy_decimals: 0
+    update_interval: 60s
+    entity_category: "DIAGNOSTIC"
+    lambda: 'return id(indoor_sensor_battery_level);'
+
+  # Outside Govee Sensor Values
+  - platform: template
+    name: "Ouside Temperature Fahrenheit"
+    id: outside_temperature_f
+    unit_of_measurement: '°F'
+    accuracy_decimals: 0
+    icon: "mdi:thermometer"
+    update_interval: 60s
+    # web_server:
+    #   sorting_weight: 10
+    lambda: |-
+      const float outdoor_temperature_f = (id(outdoor_sensor_temp_c) * 1.8) + 32;
+      return outdoor_temperature_f;
+
+  - platform: template
+    name: "Outside Temperature Celsius"
+    id: outside_temperature_c
+    unit_of_measurement: '°C'
+    accuracy_decimals: 0
+    icon: "mdi:thermometer"
+    update_interval: 60s
+    # web_server:
+    #   sorting_weight: 11
+    lambda: 'return id(outdoor_sensor_temp_c);'
+
+  - platform: template
+    name: "Outside Humidity"
+    id: outside_humidity
+    unit_of_measurement: '%'
+    accuracy_decimals: 0
+    icon: "mdi:water-percent"
+    update_interval: 60s
+    # web_server:
+    #   sorting_weight: 12
+    lambda: 'return id(outdoor_sensor_humidity);'
+
+  - platform: template
+    name: "Outdoor Sensor Battery"
+    id: outside_sensor_battery
+    device_class: battery
+    unit_of_measurement: '%'
+    accuracy_decimals: 0
+    update_interval: 60s
+    entity_category: "DIAGNOSTIC"
+    lambda: 'return id(outdoor_sensor_battery_level);'
+
+  # Presence sensor binary sensors
+  - platform: ld2410
+    moving_distance:
+      name: Moving Distance
+      id: moving_distance
+      entity_category: "DIAGNOSTIC"
+    still_distance:
+      name: Still Distance
+      id: still_distance
+      entity_category: "DIAGNOSTIC"
+    detection_distance:
+      name: Detection Distance
+      id: radar_detection_distance
+      entity_category: "DIAGNOSTIC"
+
+binary_sensor: 
+  - platform: ble_presence
+    mac_address: ${outdoor_sensor_mac_address}
+    name: "Outdoor Govee Sensor"
+    entity_category: "DIAGNOSTIC"
+  - platform: ble_presence
+    mac_address: ${indoor_sensor_mac_address}
+    name: "Indoor Govee Sensor"
+    entity_category: "DIAGNOSTIC"
+
+  # Presence sensor binary sensors
+  - platform: ld2410
+    has_target:
+      name: Presence
+      id: presence
+      filters:
+        - delayed_on: 1s
+        - delayed_off: 1s
+    has_moving_target:
+      name: Motion
+      id: moving_target
+      filters:
+        - delayed_on: 1s
+        - delayed_off: 4s
+    has_still_target:
+      name: Still Target
+      id: still_target
+    # out_pin_presence_status:
+    #   name: out pin presence status
+    #   filters:
+    #     - delayed_on: 1s
+    #     - delayed_off: 1s
+
+

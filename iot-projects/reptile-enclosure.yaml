@@ -1,0 +1,56 @@
+substitutions:
+  debug_sensors: "true"
+  device_name: "reptile-enclosure"
+  friendly_device_name: "Reptile Enclosure"
+  timezone: "America/Chicago"
+  relay_day_pin: GPIO3
+  relay_night_pin: GPIO4
+  light_status_pin: GPIO10
+  dht_sensor_pin: GPIO09
+  temperature_unit: "°F"
+  mist_pump_pin: GPIO1
+
+packages: 
+  bz0qyz.reptile-enclosure:
+    url: https://github.com/bz0qyz/esphome
+    files:
+      - reptile-enclosure/reptile-enclosure-full.yaml
+    ref: main
+    refresh: 0.5min
+
+esphome:
+  # name: ${device_name}
+  # friendly_name: ${friendly_devicename}
+  area: Kitchen
+
+esp32:
+  board: esp32-c3-devkitm-1
+  framework:
+    type: arduino
+
+# Enable logging
+logger:
+  level: INFO
+
+# Enable Home Assistant API
+api:
+  encryption:
+    key: !secret encryption_key
+
+ota:
+  - platform: esphome
+    password: !secret ota_password
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
+  ap:
+    ssid: "${device_name}-hotspot"
+    password: !secret hostpot_password
+
+sensor:
+  - id: !extend dht_sensor
+    update_interval: 10s
+

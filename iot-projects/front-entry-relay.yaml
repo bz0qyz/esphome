@@ -1,0 +1,48 @@
+substitutions:
+  device_name: "front-entry-relay"
+  friendly_device_name: "Front Entry Relay"
+  device_area: "Front Entry"
+  # relay switch gpio
+  relay1_name: "Entry Light"
+  relay1_icon: "mdi:chandelier"
+  relay2_name: "Front Portch Light"
+  relay2_icon: "mdi:ceiling-light"
+  # manual switch gpio
+  switch1_name: "Entry Light Switch"
+  switch2_name: "Front Portch Light Switch"
+  # Relay trip limits
+  max_power: "3600.0"
+  max_temp: "80.0"
+
+packages: 
+  bz0qyz.shelly2pm-base:
+    url: https://github.com/bz0qyz/esphome
+    files:
+      - shelly2pm/base-light.yaml
+    ref: main
+    refresh: 30min
+
+
+# Enable logging
+logger:
+  level: INFO
+
+# Enable Home Assistant API
+api:
+  encryption:
+    key: !secret encryption_key
+
+ota:
+  - platform: esphome
+    password: !secret ota_password
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
+  ap:
+    ssid: "${device_name}-hotspot"
+    password: !secret hostpot_password
+
+captive_portal:

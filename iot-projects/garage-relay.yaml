@@ -1,0 +1,238 @@
+substitutions:
+  device_name: "garage-relay"
+  friendly_device_name: "Garage Relay"
+  device_area: "Garage"
+  # relay switch gpio
+  relay1_name: "Garage Light"
+  relay1_icon: "mdi:lightbulb-fluorescent-tube"
+  relay2_name: "Outside Light"
+  relay2_icon: "mdi:coach-lamp"
+  # manual switch gpio
+  switch1_name: "Garage Light Switch"
+  switch2_name: "Outside Light Switch"
+  # garage light automation
+  # 900s  = 15min
+  # 1800s = 30min
+  garage_light_mode_auto: "Auto"
+  garage_light_mode_manual: "Manual"
+  # Relay trip limits
+  max_power: "3600.0"
+  max_temp: "80.0"
+
+packages:
+  bz0qyz.shelly2pm-base:
+    url: https://github.com/bz0qyz/esphome
+    files:
+      - shelly2pm/base-light.yaml
+    ref: main
+    refresh: 30min
+
+logger:
+  level: INFO
+
+# Enable Home Assistant API
+api:
+  encryption:
+    key: !secret encryption_key
+
+ota:
+  - platform: esphome
+    password: !secret ota_password
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
+  ap:
+    ssid: "${device_name} Hotspot"
+    password: !secret hostpot_password
+
+captive_portal:
+
+udp:
+
+packet_transport:
+  platform: udp
+  id: transport_input
+  providers:
+    - name: garage-sensor
+      encryption: !secret udp_encryption
+
+number:
+  - platform: template
+    id: timer_wait_seconds
+    name: "Light Timer Sec"
+    icon: "mdi:timer"
+    optimistic: true
+    restore_value: true
+    min_value: 30
+    max_value: 3600
+    step: 1
+
+select:
+  - platform: template
+    id: garage_light_mode
+    name: "Garage Light Mode"
+    icon: "mdi:auto-mode"
+    optimistic: true
+    restore_value: true
+    initial_option: "Auto"
+    options:
+      - "${garage_light_mode_auto}"
+      - "${garage_light_mode_manual}"
+
+light:
+  - id: !extend relay1_light
+    on_turn_on: 
+      - if:
+          condition:
+            - lambda: 'return !id(presence).state;'
+          then:
+            - logger.log: 
+                format: "Starting the auto-off light timer. Presence Clear."
+                level: INFO
+            - script.execute: timer_autolight
+    on_turn_off:
+      - if:
+          condition:
+            - script.is_running: timer_autolight
+          then:
+            - script.stop: timer_autolight
+
+binary_sensor:
+  # UDP Motion
+  - platform: packet_transport
+    provider: garage_light_sensor
+    id: moving_target
+    on_press:
+      # Stop the light timer if mode == 'Auto'
+      - if:
+          condition:
+            - lambda: 'return id(garage_light_mode).state == "$garage_light_mode_auto";'
+          then:
+            - logger.log: 
+                format: "Garage Motion Detected. Stopping the Garage Light auto-off timer"
+                level: INFO
+            - script.stop: timer_autolight
+
+  # UDP Presence
+  - platform: packet_transport
+    transport_id: transport_input
+    remote_id: presence
+    provider: garage-sensor
+    id: presence
+    on_press:
+      # Turn on the Garage light if mode == 'Auto'
+      - if:
+          condition:
+            - light.is_off: relay1_light
+            - lambda: 'return id(garage_light_mode).state == "$garage_light_mode_auto";'
+          then:
+            - logger.log: "Garage Presence Detected. Turning on the Garage Light"
+            - script.stop: timer_autolight
+            - light.turn_on: relay1_light
+    on_release:
+      # Turn on the auto-off timer script if mode == 'Auto'
+      - if:
+          condition:
+            - lambda: 'return id(garage_light_mode).state == "$garage_light_mode_auto";'
+          then:
+            - logger.log: 
+                format: "Starting the auto-off light timer. Presence Clear."
+                level: INFO
+            - script.execute: timer_autolight
+      
+  
+  # UDP Garage Door 1
+  - platform: packet_transport
+    transport_id: transport_input
+    remote_id: gpio_garage_door_1
+    provider: garage-sensor
+    id: gpio_garage_door_1
+    on_state:
+      - logger.log: 
+          format: "Garage Door1 state changed: Mode: %s."
+          args:
+            - "id(garage_light_mode).state.c_str()"
+          level: INFO
+    on_press:
+      # Turn on the Garage light if mode == 'Auto'
+      - if:
+          condition:
+            - light.is_off: relay1_light
+            - lambda: 'return id(garage_light_mode).state == "$garage_light_mode_auto";'
+          then:
+            - logger.log: 
+                format: "Garage Door 1 Opened. Turning on the Garage Light"
+                level: INFO
+            - script.stop: timer_autolight
+            - light.turn_on: relay1_light
+    on_release:
+      # Turn off the Garage light if it is on and no presence is detected
+      - if:
+          condition:
+            - light.is_on: relay1_light
+          then:
+            - logger.log: "Starting the auto-off light timer. Garage Door 1 Closed."
+            - script.execute: timer_autolight
+              
+  # UDP Garage Door 2
+  - platform: packet_transport
+    transport_id: transport_input
+    remote_id: gpio_garage_door_2
+    provider: garage-sensor
+    id: gpio_garage_door_2
+    on_press:
+      # Turn on the Garage light if mode == 'Auto'
+      - if:
+          condition:
+            - light.is_off: relay1_light
+            - lambda: 'return id(garage_light_mode).state == "$garage_light_mode_auto";'
+          then:
+            - logger.log: 
+                format: "Garage Door 2 Opened. Turning on the Garage Light"
+                level: INFO
+            - script.stop: timer_autolight
+            - light.turn_on: relay1_light
+    on_release:
+      # Turn off the Garage light if it is on and no presence is detected
+      - if:
+          condition:
+            - light.is_on: relay1_light
+          then:
+            - logger.log:
+                format: "Starting the auto-off light timer. Garage Door 2 Closed."
+                level: INFO
+            - script.execute: timer_autolight
+              
+script:
+  - id: timer_autolight
+    then:
+      - if:
+          condition:
+            - light.is_on: relay1_light
+            - lambda: 'return !id(presence).state;'
+            - lambda: 'return !id(gpio_garage_door_1).state;'
+            - lambda: 'return !id(gpio_garage_door_2).state;'
+          then:
+            - logger.log: 
+                format: "Starting light auto-off timer for: %.0f seconds"  # Format for logging float seconds
+                args:
+                  - id(timer_wait_seconds).state
+                level: INFO
+            - delay: !lambda |-
+                  float seconds = id(timer_wait_seconds).state;
+                  int milliseconds = (int) (seconds * 1000);  // Convert seconds to milliseconds
+                  return milliseconds;  // Return the value in milliseconds
+            - if:
+                condition:
+                  - light.is_on: relay1_light
+                  - lambda: 'return !id(presence).state;'
+                  - lambda: 'return !id(gpio_garage_door_1).state;'
+                  - lambda: 'return !id(gpio_garage_door_2).state;'
+                then:
+                  - logger.log:
+                      format: "Turning off the garage light"
+                      level: INFO
+                  - light.turn_off: relay1_light
