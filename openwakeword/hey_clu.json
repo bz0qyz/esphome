@@ -1,0 +1,7 @@
+{
+ "type": "micro",
+ "wake_word": "ok clu",
+ "author": "bz0qyz",
+ "model": "ok_clu.tflite",
+ "version: 1
+}
