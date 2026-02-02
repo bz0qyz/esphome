@@ -2,7 +2,7 @@
  "type": "micro",
  "wake_word": "ok clu",
  "author": "bz0qyz",
- "model": "ok_clu.tflite",
+ "model": "hey_clu_float_16.tflite",
  "trained_languages": ["en"],
  "version: 2,
  "micro": {
