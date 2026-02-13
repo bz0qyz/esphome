@@ -217,7 +217,7 @@ number:
         disabled_by_default: True
 
 script:
-  - id: !extend update_presence
+  - id: update_presence
     then:
       - if:
           condition:
