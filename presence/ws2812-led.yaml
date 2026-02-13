@@ -85,7 +85,7 @@ script:
                       condition:
                         binary_sensor.is_on: ld2410_presence
                       then:
-                        # Presence only - BLUE
+                        # Presence detected - BLUE
                         - logger.log:
                             format: "Presence Detected"
                             level: INFO

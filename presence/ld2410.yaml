@@ -217,21 +217,31 @@ number:
         disabled_by_default: True
 
 script:
-  - id: update_presence
+  - id: !extend update_presence
     then:
       - if:
           condition:
-            binary_sensor.is_on: ld2410_moving_target
+            !lambda 'return true;'
           then:
-            # Motion detected
-            - logger.log:
-                format: "Motion Detected"
-                level: INFO
+            - if:
+                condition:
+                  binary_sensor.is_on: ld2410_moving_target
+                then:
+                  # Motion detected
+                  - logger.log:
+                      format: "Motion Detected"
+                      level: INFO
+                else:
+                  - if:
+                      condition:
+                        binary_sensor.is_on: ld2410_presence
+                      then:
+                        # Presence detected
+                        - logger.log:
+                            format: "Presence Detected"
+                            level: INFO
         else:
-          - if:
-              condition:
-                binary_sensor.is_on: ld2410_presence
-              then:
-                - logger.log:
-                    format: "Presence Detected"
-                    level: INFO
+            # Status LED disabled
+            - logger.log:
+                format: "Presence Cleared"
+                level: INFO
