@@ -1,25 +1,3 @@
-binary_sensor:
-  # Presence binary sensors
-  - platform: ld2410
-    has_target:
-      id: !extend ld2410_presence
-      on_press:
-        - script.execute: update_presence
-      on_release:
-        - script.execute: update_presence
-    has_moving_target:
-      id: ld2410_moving_target
-      on_press:
-        - script.execute: update_presence
-      on_release:
-        - script.execute: update_presence
-    has_still_target:
-      id: !extend ld2410_still_target
-      on_press:
-        - script.execute: update_presence
-      on_release:
-        - script.execute: update_presence
-
 light:
   - platform: esp32_rmt_led_strip
     id: presence_led
