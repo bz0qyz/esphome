@@ -10,6 +10,10 @@ substitutions:
   timezone: "America/Chicago"
 
 globals:
+  - id: ble_active_mode
+    type: bool
+    restore_value: True
+    initial_value: 'false'
   - id: outdoor_sensor_temp_c
     type: float
     restore_value: True
@@ -39,6 +43,17 @@ esphome:
   name: ${device_name}
   friendly_name: ${friendly_devicename}
   area: Kitchen
+  # On boot, check the saved state
+  on_boot:
+    - priority: -100
+      then:
+        - if:
+            condition:
+              lambda: 'return id(ble_active_mode);'
+            then:
+              - esp32_ble_tracker.start_scan:
+            else:
+              - esp32_ble_tracker.stop_scan:
 
 esp32:
   #board: esp32dev
@@ -118,6 +133,25 @@ switch:
     bluetooth:
       name: "ld2410 bluetooth"
       entity_category: "DIAGNOSTIC"
+  - platform: template
+    id: ble_active_mode_select
+    name: "BLE Active Scanning"
+    optimistic: True
+    on_turn_on:
+      then:
+        - logger.log: "Active scanning is now ON!"
+        - lambda: |-
+            id(ble_active_mode) = true;
+        - delay: 1s
+        - esp32_ble_tracker.start_scan:
+    on_turn_off: 
+      then:
+        - logger.log: "Active scanning mode is now OFF!"
+        - lambda: |-
+            id(ble_active_mode) = false;
+        - delay: 1s
+        - esp32_ble_tracker.stop_scan:
+
 button:
   - platform: restart
     id: restart_button
@@ -333,7 +367,7 @@ sensor:
     entity_category: "DIAGNOSTIC"
     lambda: 'return id(outdoor_sensor_battery_level);'
 
-  # Presence sensor binary sensors
+  # Presence sensors
   - platform: ld2410
     moving_distance:
       name: Moving Distance
@@ -358,7 +392,7 @@ binary_sensor:
     name: "Indoor Govee Sensor"
     entity_category: "DIAGNOSTIC"
 
-  # Presence sensor binary sensors
+  # Presence binary sensors
   - platform: ld2410
     has_target:
       name: Presence
@@ -381,4 +415,22 @@ binary_sensor:
     #     - delayed_on: 1s
     #     - delayed_off: 1s
 
+text_sensor:
+  - platform: ld2410
+    version:
+      name: "ld2410 Firmware version"
+      entity_category: "DIAGNOSTIC"
+    mac_address:
+      name: MAC address
+      entity_category: "DIAGNOSTIC"
 
+select:
+  - platform: ld2410
+    distance_resolution:
+      name: "ld2410 Distance resolution"
+    baud_rate:
+      name: "ld2410 Baud rate"
+    light_function:
+      name: "ld2410 Light function"
+    out_pin_level:
+      name: Out pin level
