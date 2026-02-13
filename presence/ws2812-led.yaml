@@ -74,6 +74,8 @@ script:
           condition:
             switch.is_off: led_active_mode
           then:
+            - light.turn_off:
+                id: presence_led
             - script.stop: update_presence
       - if:
           condition:
