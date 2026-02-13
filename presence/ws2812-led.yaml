@@ -91,7 +91,7 @@ script:
                       red: 0%
                       green: 0%
                       blue: 100%
-                      brightness: 50%
+                      brightness: !lambda 'return id(presence_brightness).state / 100.0;'
                 else:
                   # Presence cleared
                   - light.turn_off:
@@ -110,7 +110,7 @@ script:
                       red: 100%
                       green: 0%
                       blue: 0%
-                      brightness: 100%
+                      brightness: !lambda 'return id(motion_brightness).state / 100.0;'
                 else:
                   # Motion cleared - check if presence still active
                   - if:
@@ -123,7 +123,7 @@ script:
                             red: 0%
                             green: 0%
                             blue: 100%
-                            brightness: 50%
+                            brightness: !lambda 'return id(presence_brightness).state / 100.0;'
                       else:
                         # No presence either - turn off
                         - light.turn_off:

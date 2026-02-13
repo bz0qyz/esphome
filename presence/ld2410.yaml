@@ -15,6 +15,7 @@ switch:
     engineering_mode:
       name: "ld2410 Engineering mode"
       entity_category: "DIAGNOSTIC"
+      disabled_by_default: True
     bluetooth:
       name: "ld2410 bluetooth control"
       entity_category: "CONFIG"
