@@ -19,12 +19,16 @@ switch:
       - logger.log:
             format: "Enabling status LED"
             level: INFO
-      - script.execute: update_presence
+      - script.execute:
+          id: update_presence
+          trigger: 0
     on_turn_off:
       - logger.log:
             format: "Disabling status LED"
             level: INFO
-      - script.execute: update_presence
+      - script.execute:
+          id: update_presence
+          trigger: 0
 
 number:
   # Presence LED settings
@@ -41,7 +45,9 @@ number:
     unit_of_measurement: "%"
     restore_value: true
     on_value:
-      - script.execute: update_presence
+      - script.execute:
+          id: update_presence
+          trigger: 0
 
   # Motion LED settings
   - platform: template
@@ -57,7 +63,9 @@ number:
     unit_of_measurement: "%"
     restore_value: true
     on_value:
-      - script.execute: update_presence
+      - script.execute:
+          id: update_presence
+          trigger: 1
 
 script:
   - id: !extend update_presence
