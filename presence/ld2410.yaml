@@ -100,17 +100,6 @@ binary_sensor:
         - script.execute: 
             id: update_presence
             trigger: 0
-    has_still_target:
-      name: Still Target
-      id: ld2410_still_target
-      on_press:
-        - script.execute: 
-            id: update_presence
-            trigger: 0
-      on_release:
-        - script.execute: 
-            id: update_presence
-            trigger: 0
     has_moving_target:
       name: Motion
       id: ld2410_moving_target
