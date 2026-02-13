@@ -93,9 +93,24 @@ binary_sensor:
         - delayed_off: 1s
         - settle: 1000ms
       on_press:
-        - script.execute: update_presence
+        - script.execute: 
+          id: update_presence
+          trigger: 0
       on_release:
-        - script.execute: update_presence
+        - script.execute: 
+          id: update_presence
+          trigger: 0
+    has_still_target:
+      name: Still Target
+      id: ld2410_still_target
+      on_press:
+        - script.execute: 
+          id: update_presence
+          trigger: 0
+      on_release:
+        - script.execute: 
+          id: update_presence
+          trigger: 0
     has_moving_target:
       name: Motion
       id: ld2410_moving_target
@@ -104,16 +119,14 @@ binary_sensor:
         - delayed_off: 4s
         - settle: 1000ms
       on_press:
-        - script.execute: update_presence
+        - script.execute: 
+          id: update_presence
+          trigger: 1
       on_release:
-        - script.execute: update_presence
-    has_still_target:
-      name: Still Target
-      id: ld2410_still_target
-      on_press:
-        - script.execute: update_presence
-      on_release:
-        - script.execute: update_presence
+        - script.execute: 
+          id: update_presence
+          trigger: 1
+    
 
 text_sensor:
   - platform: ld2410
@@ -218,10 +231,30 @@ number:
 
 script:
   - id: update_presence
+    parameters:
+      # 0=presence, 1=motion
+      trigger: int
     then:
       - if:
           condition:
-            !lambda 'return true;'
+            lambda: 'return trigger == 0;'
+          then:
+            - if:
+                condition:
+                  binary_sensor.is_on: ld2410_presence
+                then:
+                  # Presence detected
+                  - logger.log:
+                      format: "Presence Detected"
+                      level: INFO
+                else:
+                  # Presence cleared
+                  - logger.log:
+                      format: "Presence Cleared"
+                      level: INFO
+      - if:
+          condition:
+            lambda: 'return trigger == 1;'
           then:
             - if:
                 condition:
@@ -232,16 +265,8 @@ script:
                       format: "Motion Detected"
                       level: INFO
                 else:
-                  - if:
-                      condition:
-                        binary_sensor.is_on: ld2410_presence
-                      then:
-                        # Presence detected
-                        - logger.log:
-                            format: "Presence Detected"
-                            level: INFO
-        else:
-            # Status LED disabled
-            - logger.log:
-                format: "Presence Cleared"
-                level: INFO
+                  # Motion cleared
+                  - logger.log:
+                      format: "Motion Cleared"
+                      level: INFO
+
