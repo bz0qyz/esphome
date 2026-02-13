@@ -92,6 +92,10 @@ binary_sensor:
         - delayed_on: 1s
         - delayed_off: 1s
         - settle: 1000ms
+      on_press:
+        - script.execute: update_presence
+      on_release:
+        - script.execute: update_presence
     has_moving_target:
       name: Motion
       id: ld2410_moving_target
@@ -99,9 +103,17 @@ binary_sensor:
         - delayed_on: 1s
         - delayed_off: 4s
         - settle: 1000ms
+      on_press:
+        - script.execute: update_presence
+      on_release:
+        - script.execute: update_presence
     has_still_target:
       name: Still Target
       id: ld2410_still_target
+      on_press:
+        - script.execute: update_presence
+      on_release:
+        - script.execute: update_presence
 
 text_sensor:
   - platform: ld2410
@@ -203,3 +215,23 @@ number:
         name: G8 still threshold
         entity_category: "CONFIG"
         disabled_by_default: True
+
+script:
+  - id: update_presence
+    then:
+      - if:
+          condition:
+            binary_sensor.is_on: ld2410_moving_target
+          then:
+            # Motion detected
+            - logger.log:
+                format: "Motion Detected"
+                level: INFO
+        else:
+          - if:
+              condition:
+                binary_sensor.is_on: ld2410_presence
+              then:
+                - logger.log:
+                    format: "Presence Detected"
+                    level: INFO

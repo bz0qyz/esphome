@@ -4,21 +4,21 @@ binary_sensor:
     has_target:
       id: !extend ld2410_presence
       on_press:
-        - script.execute: update_presence_led
+        - script.execute: update_presence
       on_release:
-        - script.execute: update_presence_led
+        - script.execute: update_presence
     has_moving_target:
-      id: !extend ld2410_moving_target
+      id: ld2410_moving_target
       on_press:
-        - script.execute: update_presence_led
+        - script.execute: update_presence
       on_release:
-        - script.execute: update_presence_led
+        - script.execute: update_presence
     has_still_target:
       id: !extend ld2410_still_target
       on_press:
-        - script.execute: update_presence_led
+        - script.execute: update_presence
       on_release:
-        - script.execute: update_presence_led
+        - script.execute: update_presence
 
 light:
   - platform: esp32_rmt_led_strip
@@ -41,12 +41,12 @@ switch:
       - logger.log:
             format: "Enabling status LED"
             level: INFO
-      - script.execute: update_presence_led
+      - script.execute: update_presence
     on_turn_off:
       - logger.log:
             format: "Disabling status LED"
             level: INFO
-      - script.execute: update_presence_led
+      - script.execute: update_presence
 
 number:
   # Presence LED settings
@@ -63,7 +63,7 @@ number:
     unit_of_measurement: "%"
     restore_value: true
     on_value:
-      - script.execute: update_presence_led
+      - script.execute: update_presence
 
   # Motion LED settings
   - platform: template
@@ -79,10 +79,10 @@ number:
     unit_of_measurement: "%"
     restore_value: true
     on_value:
-      - script.execute: update_presence_led
+      - script.execute: update_presence
 
 script:
-  - id: update_presence_led
+  - id: !extend update_presence
     then:
       - if:
           condition:
@@ -110,7 +110,7 @@ script:
                         # Presence only - BLUE
                         - logger.log:
                             format: "Presence Detected"
-                            level: DEBUG
+                            level: INFO
                         - light.turn_on:
                             id: presence_led
                             red: 0%
