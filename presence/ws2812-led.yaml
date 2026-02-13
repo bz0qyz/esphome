@@ -64,45 +64,57 @@ script:
     then:
       - if:
           condition:
-            switch.is_on: led_active_mode
+            switch.is_off: led_active_mode
+          then:
+            - script.stop: update_presence
+      - if:
+          condition:
+            lambda: 'return trigger == 0;'
+          then:
+            - if:
+                condition:
+                  binary_sensor.is_on: ld2410_presence
+                then:
+                  # Presence detected - Blue
+                  - light.turn_on:
+                      id: presence_led
+                      red: 0%
+                      green: 0%
+                      blue: 100%
+                      brightness: 50%
+                else:
+                  # Presence cleared
+                  - light.turn_off:
+                      id: presence_led
+      - if:
+          condition:
+            lambda: 'return trigger == 1;'
           then:
             - if:
                 condition:
                   binary_sensor.is_on: ld2410_moving_target
                 then:
-                  # Motion detected - RED
-                  - logger.log:
-                      format: "Motion Detected"
-                      level: INFO
+                  # Motion detected - Red
                   - light.turn_on:
                       id: presence_led
                       red: 100%
                       green: 0%
                       blue: 0%
-                      brightness: !lambda 'return id(motion_brightness).state / 100.0;'
+                      brightness: 100%
                 else:
+                  # Motion cleared - check if presence still active
                   - if:
                       condition:
                         binary_sensor.is_on: ld2410_presence
                       then:
-                        # Presence detected - BLUE
-                        - logger.log:
-                            format: "Presence Detected"
-                            level: INFO
+                        # Still presence - back to Blue
                         - light.turn_on:
                             id: presence_led
                             red: 0%
                             green: 0%
                             blue: 100%
-                            brightness: !lambda 'return id(presence_brightness).state / 100.0;'
+                            brightness: 50%
                       else:
-                        # No presence - OFF
+                        # No presence either - turn off
                         - light.turn_off:
                             id: presence_led
-          else:
-            # Status LED disabled
-            - logger.log:
-                format: "Presence Cleared"
-                level: INFO
-            - light.turn_off:
-                id: presence_led
