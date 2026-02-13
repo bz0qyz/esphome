@@ -1,6 +1,6 @@
 binary_sensor:
   # Presence binary sensors
-  - !extend  platform: ld2410
+  - platform: ld2410
     has_target:
       id: ld2410_presence
       on_press:
