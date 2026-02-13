@@ -143,10 +143,15 @@ number:
       name: Timeout
     light_threshold:
       name: Light threshold
+      entity_category: "CONFIG"
     max_move_distance_gate:
       name: Max move distance gate
+      entity_category: "CONFIG"
+      disabled_by_default: True
     max_still_distance_gate:
       name: Max still distance gate
+      entity_category: "CONFIG"
+      disabled_by_default: True
     g0:
       move_threshold:
         name: G0 move threshold

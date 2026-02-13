@@ -10,7 +10,7 @@ light:
 switch:
   - platform: template
     id: led_active_mode
-    name: "LED Enable"
+    name: "Presence LED Enable"
     icon: "mdi:led-outline"
     entity_category: "CONFIG"
     optimistic: True
