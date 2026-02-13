@@ -1,0 +1,127 @@
+binary_sensor:
+  # Presence binary sensors
+  - platform: ld2410
+    has_target:
+      on_press:
+        - script.execute: update_presence_led
+      on_release:
+        - script.execute: update_presence_led
+    has_moving_target:
+      on_press:
+        - script.execute: update_presence_led
+      on_release:
+        - script.execute: update_presence_led
+    has_still_target:
+      on_press:
+        - script.execute: update_presence_led
+      on_release:
+        - script.execute: update_presence_led
+
+light:
+  - platform: esp32_rmt_led_strip
+    id: presence_led
+    name: "Status LED"
+    rgb_order: GRB
+    pin: ${pin_presence_led}
+    num_leds: 1
+    chipset: ws2812
+
+switch:
+  - platform: template
+    id: led_active_mode
+    name: "LED Enable"
+    icon: "mdi:led-outline"
+    entity_category: "CONFIG"
+    optimistic: True
+    restore_mode: RESTORE_DEFAULT_ON
+    on_turn_on:
+      - logger.log:
+            format: "Enabling status LED"
+            level: INFO
+      - script.execute: update_presence_led
+    on_turn_off:
+      - logger.log:
+            format: "Disabling status LED"
+            level: INFO
+      - script.execute: update_presence_led
+
+number:
+  # Presence LED settings
+  - platform: template
+    name: "LED Presence Brightness"
+    id: presence_brightness
+    icon: "mdi:brightness-percent"
+    entity_category: "CONFIG"
+    optimistic: true
+    min_value: 0
+    max_value: 100
+    step: 5
+    initial_value: 50
+    unit_of_measurement: "%"
+    restore_value: true
+    on_value:
+      - script.execute: update_presence_led
+
+  # Motion LED settings
+  - platform: template
+    name: "LED Motion Brightness"
+    id: motion_brightness
+    icon: "mdi:brightness-percent"
+    entity_category: "CONFIG"
+    optimistic: true
+    min_value: 0
+    max_value: 100
+    step: 5
+    initial_value: 50
+    unit_of_measurement: "%"
+    restore_value: true
+    on_value:
+      - script.execute: update_presence_led
+
+script:
+  - id: update_presence_led
+    then:
+      - if:
+          condition:
+            switch.is_on: led_active_mode
+          then:
+            - if:
+                condition:
+                  binary_sensor.is_on: ld2410_moving_target
+                then:
+                  # Motion detected - RED
+                  - logger.log:
+                      format: "Motion Detected"
+                      level: INFO
+                  - light.turn_on:
+                      id: presence_led
+                      red: 100%
+                      green: 0%
+                      blue: 0%
+                      brightness: !lambda 'return id(motion_brightness).state / 100.0;'
+                else:
+                  - if:
+                      condition:
+                        binary_sensor.is_on: ld2410_presence
+                      then:
+                        # Presence only - BLUE
+                        - logger.log:
+                            format: "Presence Detected"
+                            level: DEBUG
+                        - light.turn_on:
+                            id: presence_led
+                            red: 0%
+                            green: 0%
+                            blue: 100%
+                            brightness: !lambda 'return id(presence_brightness).state / 100.0;'
+                      else:
+                        # No presence - OFF
+                        - light.turn_off:
+                            id: presence_led
+          else:
+            # Status LED disabled
+            - logger.log:
+                format: "Presence Cleared"
+                level: INFO
+            - light.turn_off:
+                id: presence_led

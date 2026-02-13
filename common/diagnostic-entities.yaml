@@ -30,9 +30,9 @@ text_sensor:
       id: esp_wifi_address
       name: ESP IP Address
       entity_category: "DIAGNOSTIC"
-      disabled_by_default: true
+      disabled_by_default: True
     ssid:
       id: esp_wifi_ssid
       name: ESP Connected SSID
       entity_category: "DIAGNOSTIC"
-      disabled_by_default: true
+      disabled_by_default: True
