@@ -1,0 +1,45 @@
+substitutions:
+  # Rotary Encoder
+   # Rotary Encoder
+  pin_roe_clk: GPIO19
+  pin_roe_dat: GPIO21
+  pin_roe_btn: GPIO22_clk: GPIO19
+  pin_roe_dat: GPIO21
+  pin_roe_btn: GPIO22
+
+binary_sensor:
+  - platform: gpio
+    id: rotary_encoder_btn
+    name: "Rotary Encoder Button"
+    pin: ${pin_roe_btn}
+    filters:
+      - delayed_on: 10ms
+    on_press:
+      then:
+        - delay: 50ms
+        - logger.log:
+            format: "BTN: button pressed"
+            level: INFO
+
+sensor:
+  - platform: rotary_encoder
+    name: "Rotary Encoder Knob"
+    id: rotary_encoder_knob
+    pin_a: ${pin_roe_clk}
+    pin_b: ${pin_roe_dat}
+    restore_mode: RESTORE_DEFAULT_ZERO
+    min_value: 0
+    max_value: 100
+    filters:
+      - debounce: 10ms
+      - throttle: 10ms 
+    on_clockwise: 
+      then:
+        - logger.log:
+            format: "RTRY: turned clockwise"
+            level: INFO
+    on_anticlockwise: 
+      then:
+        - logger.log:
+            format: "RTRY: turned counter-clockwise"
+            level: INFO
