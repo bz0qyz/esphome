@@ -27,6 +27,7 @@ sensor:
     id: rotary_encoder_knob
     pin_a: ${pin_roe_clk}
     pin_b: ${pin_roe_dat}
+    publish_initial_value: True
     restore_mode: RESTORE_DEFAULT_ZERO
     min_value: 0
     max_value: 100

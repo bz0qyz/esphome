@@ -1,0 +1,103 @@
+substitutions:
+  pin_btn_1: GPIO32
+  pin_btn_2: GPIO33
+  pin_motor: GPIO18
+
+esp32_touch:
+  setup_mode: false
+
+output:
+  - platform: gpio
+    pin: ${pin_motor}
+    id: haptic_motor
+
+binary_sensor:
+  - platform: esp32_touch
+    id: touch_btn_1
+    name: "Touch Button 1"
+    pin: ${pin_btn_1}
+    threshold: 1000
+    filters:
+      - delayed_on: 100ms
+      - delayed_off: 100ms
+      - settle: 100ms
+    on_press: 
+      then:
+        - output.turn_on: haptic_motor
+        - delay: 50ms
+        - output.turn_off: haptic_motor
+    on_multi_click:
+      - timing:
+          - ON for at most 1s
+          - OFF for at most 1s
+          - ON for at most 1s
+          - OFF for at least 0.2s
+        then:
+          - logger.log:
+              format: "BTN 1: Double Clicked"
+              level: INFO
+      - timing:
+          - ON for 1s to 2s
+          - OFF for at least 0.5s
+        then:
+          - logger.log: 
+              format: "BTN 1: Single Long Clicked"
+              level: INFO
+      - timing:
+          - ON for at most 1s
+          - OFF for at least 0.5s
+        then:
+          - logger.log: 
+              format: "BTN 1: Single Short Clicked"
+              level: INFO
+
+  - platform: esp32_touch
+    id: touch_btn_2
+    name: "Touch Button 2"
+    pin: ${pin_btn_2}
+    threshold: 1000
+    filters:
+      - delayed_on: 100ms
+      - delayed_off: 100ms
+      - settle: 100ms
+    on_press: 
+      then:
+        - output.turn_on: haptic_motor
+        - delay: 50ms
+        - output.turn_off: haptic_motor
+    on_multi_click:
+      - timing:
+          - ON for at most 1s
+          - OFF for at most 1s
+          - ON for at most 1s
+          - OFF for at least 0.2s
+        then:
+          - logger.log:
+              format: "BTN 2: Double Clicked"
+              level: INFO
+      - timing:
+          - ON for 1s to 2s
+          - OFF for at least 0.5s
+        then:
+          - logger.log: 
+              format: "BTN 2: Single Long Clicked"
+              level: INFO
+      - timing:
+          - ON for at most 1s
+          - OFF for at least 0.5s
+        then:
+          - logger.log: 
+              format: "BTN 2: Single Short Clicked"
+              level: INFO
+
+sensor:
+  - platform: template
+    name: "Touch Button 1 Value"
+    lambda: |-
+        return id(touch_btn_1).get_value();
+    update_interval: 3s
+  - platform: template
+    name: "Touch Button 2 Value"
+    lambda: |-
+        return id(touch_btn_2).get_value();
+    update_interval: 3s
