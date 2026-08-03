@@ -1,0 +1,767 @@
+substitutions:
+  device_name: "hvac-upstairs"
+  friendly_device_name: "HVAC Upstairs"
+  device_area: "Landing"
+  # Relay GPIO
+  pin_relay_heat: GPIO32
+  pin_relay_aux: GPIO33
+  pin_relay_cool: GPIO25
+  pin_relay_fan: GPIO26
+   # Rotary Encoder
+  pin_roe_clk: GPIO16 #TRa
+  pin_roe_dat: GPIO17 #TRb
+  pin_roe_btn: GPIO15
+  pin_back_btn: GPIO04
+  pin_con_btn: GPIO02
+  # i2c bus_a
+  pin_sda: GPIO12
+  pin_scl: GPIO14
+
+globals:
+  - id: gbl_encoder_mode
+    type: int
+    restore_value: no
+    initial_value: '0'   # 0=off, 1=low setpoint, 2=high setpoint
+    
+  - id: home_setpoint_low
+    type: float
+    restore_value: true
+    initial_value: '20.56' # 69F
+    
+  - id: home_setpoint_high
+    type: float
+    restore_value: true
+    initial_value: '23.34' # 74F
+
+  - id: away_setpoint_low
+    type: float
+    restore_value: true
+    initial_value: '23.25' # 72F
+    
+  - id: away_setpoint_high
+    type: float
+    restore_value: true
+    initial_value: '24.45' # 76F
+
+  - id: gbl_display_active
+    type: bool
+    restore_value: no
+    initial_value: 'true'
+
+  # Filter tracking globals
+  - id: gbl_total_run_seconds
+    type: float
+    restore_value: true
+    initial_value: '0.0'
+       
+  - id: gbl_filter_last_change
+    type: int64_t
+    restore_value: true
+    initial_value: '1771977600'
+
+packages:
+  bz0qyz_common_entities:
+    url: https://github.com/bz0qyz/esphome
+    files:
+      - path: common/diagnostic-entities.yaml
+    ref: main
+    refresh: 5min
+    
+esphome:
+  name: ${device_name}
+  friendly_name: ${friendly_device_name}
+  area: ${device_area}
+  on_boot:
+    priority: -100
+    then:
+      - lambda: |-
+          auto call = id(thermostat_1).make_call();
+          if (id(thermostat_1).preset == climate::CLIMATE_PRESET_HOME) {
+            call.set_target_temperature_low(id(home_setpoint_low));
+            call.set_target_temperature_high(id(home_setpoint_high));
+          } else {
+            call.set_target_temperature_low(id(away_setpoint_low));
+            call.set_target_temperature_high(id(away_setpoint_high));
+          }
+          call.perform();
+      - lambda: id(gbl_display_active) = true;
+      - script.execute: display_timeout
+
+esp32:
+  variant: esp32
+  framework:
+    type: esp-idf
+
+logger:
+  level: DEBUG
+  # baud_rate: 0
+
+api:
+  encryption:
+    key: !secret encryption_key
+
+ota:
+  - platform: esphome
+    password: !secret ota_password
+
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  use_address: ${device_name}.local
+  ap:
+    ssid: ${device_name} Hotspot
+    password: !secret hotspot_password
+
+captive_portal:
+
+time:
+  - platform: sntp
+    id: sntp_time
+    timezone: !secret timezone
+
+preferences:
+  flash_write_interval: 1min
+
+i2c:
+  sda: ${pin_sda}
+  scl: ${pin_scl}
+  scan: true
+  id: bus_a
+
+font:
+  - file: "gfonts://Silkscreen"
+    id: small
+    size: 10
+  - file: "gfonts://Roboto Mono"
+    id: large
+    size: 18
+    glyphs: "0123456789 °FC."
+  - file: "gfonts://Roboto Mono"
+    id: medium
+    size: 15
+  - file: "gfonts://Roboto"
+    id: indicator
+    size: 10
+    glyphs: "● "
+  - file: "https://cdn.jsdelivr.net/npm/@mdi/font@7.4.47/fonts/materialdesignicons-webfont.ttf"
+    id: mdi_icons
+    size: 14
+    glyphs:
+      - "\U000F0717"  # mdi:snowflake  (cooling)
+      - "\U000F0238"  # mdi:fire       (heating)
+      - "\U000F0210"  # mdi:fan        (fan only)
+      - "\U000F00DC"  # info/alert for filter (or use \U000F00CF for air-filter)
+
+display:
+  - platform: ssd1306_i2c
+    model: "SH1106 128x64"
+    id: display_1
+    i2c_id: bus_a
+    address: 0x3C
+    pages:
+      - id: page_main
+        lambda: |-
+          if (!id(gbl_display_active)) return;
+          bool use_f = (id(display_unit).current_option() == "Fahrenheit");
+    
+          // Row 1: LO / HI column labels
+          it.printf(32,  0, id(small), TextAlign::TOP_CENTER, "LO");
+          it.printf(96,  0, id(small), TextAlign::TOP_CENTER, "HI");
+    
+          // Row 2: setpoints in large font
+          if (use_f) {
+            int i_low  = (int)round(id(thermostat_1).target_temperature_low  * 1.8f + 32);
+            int i_high = (int)round(id(thermostat_1).target_temperature_high * 1.8f + 32);
+            it.printf(32, 11, id(large), TextAlign::TOP_CENTER, "%d°F", i_low);
+            it.printf(96, 11, id(large), TextAlign::TOP_CENTER, "%d°F", i_high);
+          } else {
+            it.printf(32, 11, id(large), TextAlign::TOP_CENTER, "%.0f°C",
+                id(thermostat_1).target_temperature_low);
+            it.printf(96, 11, id(large), TextAlign::TOP_CENTER, "%.0f°C",
+                id(thermostat_1).target_temperature_high);
+          }
+    
+          // Row 3: indicators — '*' when encoder is adjusting, '!' when unsaved
+          // gbl_encoder_mode 2 = adjusting LO, 1 = adjusting HI (per on_clockwise logic)
+          float saved_low  = (id(thermostat_1).preset == climate::CLIMATE_PRESET_HOME)
+                             ? id(home_setpoint_low)  : id(away_setpoint_low);
+          float saved_high = (id(thermostat_1).preset == climate::CLIMATE_PRESET_HOME)
+                             ? id(home_setpoint_high) : id(away_setpoint_high);
+          it.printf(26,  30, id(indicator), TextAlign::TOP_CENTER,
+              id(gbl_encoder_mode) == 2 ? "●" : " ");
+          it.printf(38,  30, id(small), TextAlign::TOP_CENTER,
+              fabsf(id(thermostat_1).target_temperature_low  - saved_low)  > 0.1f ? "!" : " ");
+          it.printf(90,  30, id(indicator), TextAlign::TOP_CENTER,
+              id(gbl_encoder_mode) == 1 ? "●" : " ");
+          it.printf(102, 30, id(small), TextAlign::TOP_CENTER,
+              fabsf(id(thermostat_1).target_temperature_high - saved_high) > 0.1f ? "!" : " ");
+    
+          // Separator
+          it.line(0, 42, 127, 42);
+    
+          // Row 4: temp + humidity left, HVAC action icon center, preset name right
+          if (use_f) {
+            it.printf(0, 44, id(medium), TextAlign::TOP_LEFT, "%.0f°F %.0f%%",
+                id(temp_local).state * 1.8f + 32.0f, id(humid_local).state);
+          } else {
+            it.printf(0, 44, id(medium), TextAlign::TOP_LEFT, "%.0f°C %.0f%%",
+                id(temp_local).state, id(humid_local).state);
+          }
+          auto act = id(thermostat_1).action;
+          bool filter_due = id(filter_needed).state;
+          
+          // Show filter icon if change is due, otherwise show HVAC action
+          if (filter_due) {
+            // Filter icon (you may need to add this to mdi_icons glyphs if not present)
+            it.printf(81, 44, id(mdi_icons), TextAlign::TOP_CENTER, "\U000F00DC");
+          }
+          else if (act == climate::CLIMATE_ACTION_COOLING) {
+            it.printf(81, 44, id(mdi_icons), TextAlign::TOP_CENTER, "\U000F0717");
+          }
+          else if (act == climate::CLIMATE_ACTION_HEATING) {
+            it.printf(81, 44, id(mdi_icons), TextAlign::TOP_CENTER, "\U000F0238");
+          }
+          else if (act == climate::CLIMATE_ACTION_FAN) {
+            it.printf(81, 44, id(mdi_icons), TextAlign::TOP_CENTER, "\U000F0210");
+          }
+          it.printf(127, 44, id(medium), TextAlign::TOP_RIGHT, "%s",
+              id(thermostat_1).preset == climate::CLIMATE_PRESET_HOME ? "Home" : "Away");
+      - id: page_save
+        lambda: |-
+          it.printf(2, 0, id(medium), TextAlign::TOP_LEFT, "Saving");
+          it.printf(2, 16, id(medium), TextAlign::TOP_LEFT, "Preset...");
+
+climate:
+  - platform: thermostat
+    id: thermostat_1
+    name: "Thermostat"
+    sensor: temp_local
+    humidity_sensor: humid_local
+    web_server:
+      sorting_weight: 1
+    # values below should be about 300s
+    min_idle_time: 300s
+    # Cooling Settings
+    cool_deadband: 0.5 °C
+    min_cooling_off_time: 30s
+    min_cooling_run_time: 30s
+    # Heating Settings
+    heat_deadband: 0.5 °C
+    min_heating_off_time: 30s
+    min_heating_run_time: 30s
+    max_heating_run_time: 30s
+    supplemental_heating_delta: 3.0 °C
+    # Fan Settings
+    min_fanning_off_time: 30s
+    min_fanning_run_time: 30s
+    visual:
+      temperature_step: 1.0
+    heat_cool_mode: {}
+    cool_action:
+      - logger.log:
+          format: "THRM: cooling turned on"
+          level: INFO
+      - switch.turn_on: relay_cool_switch
+      - switch.turn_on: relay_fan_switch
+    heat_action:
+      - logger.log:
+          format: "THRM: heating turned on"
+          level: INFO
+      - switch.turn_on: relay_heat_switch
+      - switch.turn_on: relay_fan_switch
+    supplemental_heating_action:
+      - logger.log:
+          format: "THRM: heating stage 2 turned on"
+          level: INFO
+      - switch.turn_on: relay_aux_switch
+      - switch.turn_on: relay_fan_switch
+    fan_only_action:
+      - logger.log:
+          format: "THRM: fan turned on"
+          level: INFO
+      - switch.turn_on: relay_fan_switch
+    idle_action:
+      - logger.log:
+          format: "THRM: system idle"
+          level: INFO
+      - switch.turn_off: relay_cool_switch
+      - switch.turn_off: relay_heat_switch
+      - switch.turn_off: relay_fan_switch
+      - switch.turn_off: relay_aux_switch
+    # target_temperature_change_action:
+    #   - script.execute: save_preset
+    default_preset: Home
+    on_boot_restore_from: MEMORY
+    preset:
+      - name: Home
+        mode: HEAT_COOL
+        default_target_temperature_high: 20.56 °C   # 69F
+        default_target_temperature_low: 23.34 °C  # 74F
+      - name: Away
+        mode: HEAT_COOL
+        default_target_temperature_high: 23.25 °C   # 72F
+        default_target_temperature_low: 24.45 °C  # 76F
+
+binary_sensor:
+  - platform: gpio
+    id: rotary_encoder_btn
+    name: "Rotary Encoder Button"
+    pin: ${pin_roe_btn}
+    web_server:
+      sorting_weight: 5
+    filters:
+      - invert: 
+      - delayed_on: 10ms
+    on_multi_click:
+      - timing:
+          - ON for 25ms to 50ms
+        then:
+          - lambda: id(gbl_display_active) = true;
+          - script.execute: display_timeout
+      # single click: cycle encoder mode off → high → low → off
+      - timing:
+          - ON for 50ms to 350ms
+          - OFF for at least 400ms
+        then:
+          - lambda: |-
+              id(gbl_encoder_mode) = (id(gbl_encoder_mode) + 1) % 3;
+              id(encoder_mode_display).update();
+              const char* modes[] = {"off", "high setpoint", "low setpoint"};
+              ESP_LOGI("encoder", "mode: %s", modes[id(gbl_encoder_mode)]);
+          - lambda: id(gbl_display_active) = true;
+          - script.execute: display_timeout
+      # double click: toggle Home / Away preset
+      - timing:
+          - ON for 50ms to 350ms
+          - OFF for 50ms to 350ms
+          - ON for 50ms to 350ms
+          - OFF for at least 100ms
+        then:
+          - lambda: |-
+              auto call = id(thermostat_1).make_call();
+              if (id(thermostat_1).preset == climate::CLIMATE_PRESET_HOME) {
+                call.set_preset("Away");
+                call.set_target_temperature_low(id(away_setpoint_low));
+                call.set_target_temperature_high(id(away_setpoint_high));
+                ESP_LOGI("encoder", "preset: Away");
+              } else {
+                call.set_preset("Home");
+                call.set_target_temperature_low(id(home_setpoint_low));
+                call.set_target_temperature_high(id(home_setpoint_high));
+                ESP_LOGI("encoder", "preset: Home");
+              }
+              call.perform();
+              id(gbl_encoder_mode) = 0;  // reset to off after preset change
+              id(encoder_mode_display).update();
+          - lambda: id(gbl_display_active) = true;
+          - script.execute: display_timeout
+      # long press: save current setpoints to globals
+      - timing:
+          - ON for at least 800ms
+        then:
+          - lambda: |-
+              if (id(thermostat_1).preset == climate::CLIMATE_PRESET_HOME) {
+                id(home_setpoint_low) = id(thermostat_1).target_temperature_low;
+                id(home_setpoint_high) = id(thermostat_1).target_temperature_high;
+                ESP_LOGI("encoder", "saved Home: low=%.2f high=%.2f",
+                         id(home_setpoint_low), id(home_setpoint_high));
+              } else {
+                id(away_setpoint_low) = id(thermostat_1).target_temperature_low;
+                id(away_setpoint_high) = id(thermostat_1).target_temperature_high;
+                ESP_LOGI("encoder", "saved Away: low=%.2f high=%.2f",
+                         id(away_setpoint_low), id(away_setpoint_high));
+              }
+          - lambda: id(gbl_display_active) = true;
+          - script.execute: display_timeout
+
+  - platform: gpio
+    id: button_back
+    name: "Back Button"
+    pin: ${pin_back_btn}
+    web_server:
+      sorting_weight: 6
+    filters:
+      - invert: 
+      - delayed_on: 10ms
+    on_press:
+      then:
+        - logger.log:
+              format: "Back Button Pressed"
+              level: INFO
+        - lambda: |-
+            id(gbl_encoder_mode) = 0;  // reset to off after preset change
+            id(encoder_mode_display).update();
+        - lambda: id(gbl_display_active) = true;
+        - script.execute: display_timeout
+        
+  - platform: gpio
+    id: button_con
+    name: "Confirm Button"
+    pin: ${pin_con_btn}
+    web_server:
+      sorting_weight: 7
+    filters:
+      - invert: 
+      - delayed_on: 10ms
+    on_multi_click:
+      - timing:
+          - ON for 25ms to 50ms
+        then:
+          - lambda: id(gbl_display_active) = true;
+          - script.execute: display_timeout
+      - timing:
+          - ON for 50ms to 350ms
+          - OFF for at least 400ms
+        then:
+          - script.execute: save_preset
+      - timing:
+          - ON for at least 800ms
+        then:
+          - logger.log:
+              format: "Toggling display unit"
+              level: INFO
+          - select.next:
+              id: display_unit
+              cycle: true
+          - lambda: id(gbl_display_active) = true;
+          - script.execute: display_timeout
+  
+  - platform: template
+    id: filter_needed
+    name: "Filter"
+    icon: "mdi:air-filter"
+    entity_category: diagnostic
+    device_class: problem
+    lambda: |-
+      // Check if filter change is needed (days OR runtime threshold exceeded)
+      if (id(gbl_filter_last_change) == 0) return false;  // Never set, not needed yet
+      
+      uint32_t days = (id(sntp_time).now().timestamp - id(gbl_filter_last_change)) / 86400;
+      float hours = id(gbl_total_run_seconds) / 3600.0;
+      
+      // Use .state to access the number values
+      return (days >= static_cast<uint32_t>(id(filter_max_days).state) || 
+              hours >= id(filter_max_runtime_hours).state);
+              
+output:
+  - platform: gpio
+    id: relay_heat_output
+    pin: ${pin_relay_heat}
+  - platform: gpio
+    id: relay_fan_output
+    pin: ${pin_relay_fan}
+  - platform: gpio
+    id: relay_cool_output
+    pin: ${pin_relay_cool}
+  - platform: gpio
+    id: relay_aux_output
+    pin: ${pin_relay_aux}
+
+sensor:
+  - platform: rotary_encoder
+    name: "Rotary Encoder Knob"
+    id: rotary_encoder_knob
+    pin_a: ${pin_roe_clk}
+    pin_b: ${pin_roe_dat}
+    publish_initial_value: True
+    restore_mode: RESTORE_DEFAULT_ZERO
+    min_value: 0
+    max_value: 100
+    web_server:
+      sorting_weight: 4
+    filters:
+      - debounce: 10ms
+      - throttle: 10ms 
+    on_clockwise:
+      - lambda: id(gbl_display_active) = true;
+      - script.execute: display_timeout
+      - if:
+          condition:
+            lambda: 'return id(gbl_encoder_mode) == 1;'
+          then:
+            - lambda: |-
+                auto call = id(thermostat_1).make_call();
+                call.set_target_temperature_high(id(thermostat_1).target_temperature_high + 0.5);
+                call.perform();
+      - if:
+          condition:
+            lambda: 'return id(gbl_encoder_mode) == 2;'
+          then:
+            - lambda: |-
+                auto call = id(thermostat_1).make_call();
+                call.set_target_temperature_low(id(thermostat_1).target_temperature_low + 0.5);
+                call.perform();
+    on_anticlockwise:
+      - lambda: id(gbl_display_active) = true;
+      - script.execute: display_timeout
+      - if:
+          condition:
+            lambda: 'return id(gbl_encoder_mode) == 1;'
+          then:
+            - lambda: |-
+                auto call = id(thermostat_1).make_call();
+                call.set_target_temperature_high(id(thermostat_1).target_temperature_high - 1.0);
+                call.perform();
+      - if:
+          condition:
+            lambda: 'return id(gbl_encoder_mode) == 2;'
+          then:
+            - lambda: |-
+                auto call = id(thermostat_1).make_call();
+                call.set_target_temperature_low(id(thermostat_1).target_temperature_low - 1.0);
+                call.perform();
+  
+  - platform: am2320
+    i2c_id: bus_a
+    address: 0x5C
+    temperature:
+      id: temp_local
+      name: "Temperature"
+      filters:
+        - offset: -2.0
+      web_server:
+        sorting_weight: 2
+    humidity:
+      id: humid_local
+      name: "Humidity"
+      web_server:
+        sorting_weight: 3
+    update_interval: 20s
+
+  - platform: template
+    name: "Filter Age: Run Hours"
+    id: filter_hours
+    icon: "mdi:timeline-clock"
+    entity_category: diagnostic
+    update_interval: 1h
+    unit_of_measurement: "h"
+    lambda: |-
+      return id(gbl_total_run_seconds) / 3600.0;
+
+  - platform: template
+    name: "Filter Age: Days"
+    id: filter_days
+    icon: "mdi:timeline-clock"
+    entity_category: diagnostic
+    update_interval: 1h
+    unit_of_measurement: "days"
+    lambda: |-
+      if (id(gbl_filter_last_change) == 0) return 0;
+      return (id(sntp_time).now().timestamp - id(gbl_filter_last_change)) / 86400.0;
+
+text_sensor:
+  - platform: template
+    id: encoder_mode_display
+    name: "Encoder Mode"
+    icon: "mdi:knob"
+    entity_category: diagnostic
+    lambda: |-
+      switch (id(gbl_encoder_mode)) {
+        case 1: return {"High Setpoint"};
+        case 2: return {"Low Setpoint"};
+        default: return {"Off"};
+      }
+
+  - platform: template
+    name: "Filter Last Change"
+    id: filter_last_change
+    icon: "mdi:timeline-clock"
+    entity_category: diagnostic
+    lambda: |-
+      if (id(gbl_filter_last_change) == 0) {
+        return "Never";
+      }
+      char buf[32];
+      time_t ts = static_cast<time_t>(id(gbl_filter_last_change));
+      struct tm *timeinfo = localtime(&ts);
+      strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S", timeinfo);
+      return buf;
+
+switch:
+  - platform: output
+    id: relay_heat_switch
+    name: "heat"
+    entity_category: "diagnostic"
+    icon: "mdi:fire"
+    output: relay_heat_output
+    restore_mode: RESTORE_DEFAULT_OFF
+    internal: false
+    web_server:
+      sorting_weight: 10
+
+  - platform: output
+    id: relay_fan_switch
+    name: "fan"
+    entity_category: "diagnostic"
+    icon: "mdi:fan"
+    output: relay_fan_output
+    restore_mode: RESTORE_DEFAULT_OFF
+    internal: false
+    web_server:
+      sorting_weight: 13
+    on_state:
+      then:
+        - while:
+            condition:
+              switch.is_on: relay_fan_switch
+            then:
+              - lambda: |-
+                  id(gbl_total_run_seconds) += 1.0;
+              - delay: 1s
+
+  - platform: output
+    id: relay_cool_switch
+    name: "cool"
+    entity_category: "diagnostic"
+    icon: "mdi:snowflake"
+    output: relay_cool_output
+    restore_mode: RESTORE_DEFAULT_OFF
+    internal: false
+    web_server:
+      sorting_weight: 12
+  
+  - platform: output
+    id: relay_aux_switch
+    name: "heat+"
+    entity_category: "diagnostic"
+    icon: "mdi:fire-alert"
+    output: relay_aux_output
+    restore_mode: RESTORE_DEFAULT_OFF
+    internal: false
+    web_server:
+      sorting_weight: 11
+    
+select:
+  - platform: template
+    id: display_unit
+    name: "Display Unit"
+    icon: "mdi:thermometer"
+    entity_category: config
+    optimistic: true
+    restore_value: true
+    options:
+      - "Fahrenheit"
+      - "Celsius"
+    initial_option: "Fahrenheit"
+
+number:
+  - platform: template
+    id: display_timeout_seconds
+    name: "Display Timeout"
+    icon: "mdi:timer-outline"
+    entity_category: config
+    unit_of_measurement: "s"
+    mode: box
+    min_value: 10
+    max_value: 300
+    step: 10
+    optimistic: true
+    restore_value: true
+    initial_value: 60
+
+  - platform: template
+    id: filter_max_runtime_hours
+    name: "Filter Max Runtime Hours"
+    icon: "mdi:timer-sand"
+    entity_category: config
+    unit_of_measurement: "h"
+    optimistic: true
+    restore_value: true
+    initial_value: '500.0'
+    min_value: 50
+    max_value: 1000
+    step: 10
+    
+  - platform: template
+    id: filter_max_days
+    name: "Filter Max Days"
+    icon: "mdi:calendar-clock"
+    entity_category: config
+    unit_of_measurement: "days"
+    optimistic: true
+    restore_value: true
+    initial_value: '150'
+    min_value: 30
+    max_value: 365
+    step: 10
+
+button:
+  - platform: template
+    id: btn_preset_save
+    name: "Save Preset"
+    icon: "mdi:thermometer-check"
+    entity_category: config
+    on_press:
+      then:
+        - script.execute: save_preset
+
+  - platform: template
+    id: btn_filter_reset
+    name: "Filter Reset"
+    icon: "mdi:air-filter"
+    entity_category: config
+    on_press:
+      then:
+        - script.execute: scp_change_filter
+
+script:
+  - id: display_timeout
+    mode: restart
+    then:
+      - delay: !lambda 'return (uint32_t)(id(display_timeout_seconds).state * 1000);'
+      - lambda: |-
+          id(gbl_display_active) = false;
+          id(gbl_encoder_mode) = 0;
+          id(encoder_mode_display).update();
+  
+  - id: save_preset
+    mode: single
+    then:
+      - logger.log:
+          format: "Saving Preset"
+          level: INFO
+      - display.page.show: page_save
+      - component.update: display_1
+      - lambda: id(gbl_display_active) = true;
+      - script.execute: display_timeout
+      - lambda: |-
+          if (id(thermostat_1).preset == climate::CLIMATE_PRESET_HOME) {
+            id(home_setpoint_low) = id(thermostat_1).target_temperature_low;
+            id(home_setpoint_high) = id(thermostat_1).target_temperature_high;
+            ESP_LOGI("encoder", "saved Home: low=%.2f high=%.2f",
+                    id(home_setpoint_low), id(home_setpoint_high));
+          } else {
+            id(away_setpoint_low) = id(thermostat_1).target_temperature_low;
+            id(away_setpoint_high) = id(thermostat_1).target_temperature_high;
+            ESP_LOGI("encoder", "saved Away: low=%.2f high=%.2f",
+                    id(away_setpoint_low), id(away_setpoint_high));
+          }
+      - lambda: |-
+          id(gbl_encoder_mode) = 0;  // reset to off after preset change
+      - delay: 2s
+      - logger.log:
+          format: "Preset Saved"
+          level: INFO
+      - display.page.show: page_main
+      - component.update: display_1
+
+  - id: scp_change_filter
+    then:
+      # reset the total_run_seconds
+      - lambda: |-
+          id(gbl_total_run_seconds) = 0.0;
+      # Get current time as formatted string
+      - lambda: |-
+          time_t now = id(sntp_time).now().timestamp;
+          
+          // Store timestamp in global (persisted across deep sleep)
+          id(gbl_filter_last_change) = static_cast<int64_t>(now);
+          
+          // Publish formatted string to text sensor
+          char buf[32];
+          struct tm *timeinfo = localtime(&now);
+          strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S", timeinfo);
+          id(filter_last_change).publish_state(buf);
+    
+

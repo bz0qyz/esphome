@@ -1,0 +1,20 @@
+substitutions:
+  # i2c bus_a
+  pin_sda: GPIO21
+  pin_scl: GPIO22
+
+i2c:
+  sda: ${pin_sda}
+  scl: ${pin_scl}
+  scan: true
+  id: bus_a
+
+sensor:
+  - platform: am2320
+    i2c_id: bus_a
+    address: 0x5C
+    temperature:
+      name: "Temperature"
+    humidity:
+      name: "Humidity"
+    update_interval: 60s

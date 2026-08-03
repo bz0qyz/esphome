@@ -4,8 +4,10 @@ substitutions:
   outdoor_sensor_mac_address: !secret mac_outdoor_sensor
   indoor_sensor_mac_address: !secret mac_indoor_sensor
   # mmwave sensor uart pins
-  pin_prx: GPIO01
-  pin_ptx: GPIO03
+  # pin_prx: GPIO01
+  # pin_ptx: GPIO03
+  pin_prx: GPIO18
+  pin_ptx: GPIO19
   # the timezone for ntp_time
   timezone: "America/Chicago"
 
@@ -71,14 +73,15 @@ api:
     key: !secret encryption_key
   on_client_connected:
     - logger.log:
-        format: "Starting API triggered BLE scan"
+        format: "Starting BLE scanning"
         level: INFO
     - esp32_ble_tracker.start_scan:
-  # on_client_disconnected:
-  #   - esp32_ble_tracker.stop_scan:
-  #   - logger.log:
-  #       format: "Stopping API triggered BLE scan"
-  #       level: INFO
+        continuous: True
+  on_client_disconnected:
+    - esp32_ble_tracker.stop_scan:
+    - logger.log:
+        format: "Stopping BLE scan for API Access"
+        level: INFO
 
 ota:
   - platform: esphome
@@ -132,25 +135,6 @@ switch:
   - platform: ld2410
     bluetooth:
       name: "ld2410 bluetooth"
-      entity_category: "DIAGNOSTIC"
-  - platform: template
-    id: ble_active_mode_select
-    name: "BLE Active Scanning"
-    optimistic: True
-    on_turn_on:
-      then:
-        - logger.log: "Active scanning is now ON!"
-        - lambda: |-
-            id(ble_active_mode) = true;
-        - delay: 1s
-        - esp32_ble_tracker.start_scan:
-    on_turn_off: 
-      then:
-        - logger.log: "Active scanning mode is now OFF!"
-        - lambda: |-
-            id(ble_active_mode) = false;
-        - delay: 1s
-        - esp32_ble_tracker.stop_scan:
 
 button:
   - platform: restart
@@ -168,9 +152,14 @@ button:
       name: "ld2410 query params"
       entity_category: "DIAGNOSTIC"
 
+bluetooth_proxy:
+  active: True
+  connection_slots: 2
+
 esp32_ble_tracker:
   scan_parameters:
-    continuous: False
+    active: True
+    continuous: True
 
   on_ble_manufacturer_data_advertise:
     # Indoor Govee Sensor
