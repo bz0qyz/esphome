@@ -1,5 +1,3 @@
 bluetooth_proxy:
   active: ${active}
   connection_slots: ${connection_slots}
-    scan_parameters:
-      active: false
