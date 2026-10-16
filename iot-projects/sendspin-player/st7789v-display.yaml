@@ -1,0 +1,131 @@
+spi:
+  clk_pin: ${pin_spi_clk}
+  mosi_pin: ${pin_spi_mosi}
+
+output:
+  - platform: ledc
+    pin: ${pin_spi_backlight}
+    id: backlight_pwm
+    frequency: 2000 Hz
+
+light:
+  - platform: monochromatic
+    output: backlight_pwm
+    name: "Display Backlight"
+    id: display_backlight
+    icon: "mdi:television-ambient-light"
+    restore_mode: ALWAYS_OFF
+    default_transition_length: 0s
+
+# Fonts
+font:
+  - file: "gfonts://Roboto"
+    id: title_font
+    size: 20
+
+  - file: "gfonts://Roboto"
+    id: artist_font
+    size: 15
+
+  - file: "gfonts://Roboto"
+    id: small_font
+    size: 12
+
+# Album artwork streamed by Sendspin
+image:
+  - platform: sendspin
+    id: album_slot
+    format: JPEG
+    type: RGB565
+    resize: 200x200
+    current_image:
+      id: album_art
+    on_image_display:
+      then:
+        - component.update: music_display
+    on_image_clear:
+      then:
+        - component.update: music_display
+
+# Track metadata
+text_sensor:
+  - id: !extend track_title
+    on_value:
+      then:
+        - component.update: music_display
+
+  - id: !extend track_artist
+    on_value:
+      then:
+        - component.update: music_display
+
+  - id: !extend track_album
+    on_value:
+      then:
+        - component.update: music_display
+
+# Display
+display:
+  - platform: mipi_spi
+    model: ST7789V
+    id: music_display
+    data_rate: 20MHz
+    dimensions:
+      width: 240
+      height: 320
+    dc_pin: ${pin_spi_dc}
+    cs_pin: ${pin_spi_cs}
+    reset_pin: ${pin_spi_reset}
+    rotation: 270
+    color_order: bgr
+    invert_colors: true
+    update_interval: never
+    auto_clear_enabled: true
+    lambda: |-
+      // Right-side metadata
+      if (id(track_title).has_state()) {
+        it.fill(Color(12, 12, 16));
+  
+        // Album art: left side, 220 x 220
+        it.image(10, 10, id(album_art));
+        
+        // Shadow
+        it.printf(
+          12, 67,
+          id(title_font),
+          Color(0, 0, 0),
+          TextAlign::TOP_LEFT,
+          "%s",
+          id(track_title).state.c_str()
+        );
+        
+        // Foreground text
+        it.printf(
+          10, 65,
+          id(title_font),
+          Color(255, 255, 255),
+          TextAlign::TOP_LEFT,
+          "%s",
+          id(track_title).state.c_str()
+        );
+      } else {
+        it.clear();
+      }
+
+      if (id(track_artist).has_state()) {
+        it.printf(
+          242, 115, id(artist_font),
+          Color(180, 180, 190),
+          TextAlign::CENTER,
+          "%s", id(track_artist).state.c_str()
+        );
+      }
+
+      if (id(track_album).has_state()) {
+        it.printf(
+          242, 150, id(small_font),
+          Color(120, 120, 135),
+          TextAlign::CENTER,
+          "%s", id(track_album).state.c_str()
+        );
+      }

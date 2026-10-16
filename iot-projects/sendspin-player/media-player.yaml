@@ -1,0 +1,165 @@
+# Set network performance to false if there ring buffer issue
+network:
+  enable_high_performance: false
+
+captive_portal:
+
+http_request:
+  id: http_req
+
+switch:
+  - platform: template
+    id: power_control
+    name: "Power"
+    icon: "mdi:power"
+    optimistic: true
+    restore_mode: ALWAYS_OFF
+    turn_on_action:
+      - media_player.turn_on: external_media_player
+      - light.turn_on:
+          id: display_backlight
+          brightness: 100%
+    turn_off_action:
+      - light.turn_off: display_backlight
+      - media_player.turn_off: external_media_player
+
+  - platform: template
+    id: mute_control
+    name: "Mute"
+    icon: "mdi:volume-off"
+    optimistic: true
+    restore_mode: ALWAYS_OFF
+    turn_on_action:
+      - media_player.mute: external_media_player
+    turn_off_action:
+      - media_player.unmute: external_media_player
+
+sendspin:
+  id: sendspin_module
+  task_stack_in_psram: false
+
+media_source:
+  - platform: audio_http
+    id: http_announcement_source
+    buffer_size: 250000
+    task_stack_in_psram: false
+  - platform: audio_http
+    id: http_media_source
+    buffer_size: 500000
+    task_stack_in_psram: false
+  - platform: sendspin
+    id: sendspin_media_source
+    initial_static_delay: 0ms
+    static_delay_adjustable: true
+    sample_rate: $sample_rate
+    buffer_size: 250000
+    task_stack_in_psram: false
+    decode_memory: internal #psram
+
+i2s_audio:
+  - id: i2s_out
+    i2s_lrclk_pin: ${pin_i2s_lrclk}
+    i2s_bclk_pin: ${pin_i2s_bclk}
+
+speaker:
+  - platform: i2s_audio
+    id: i2s_audio_speaker
+    dac_type: external
+    i2s_audio_id: i2s_out
+    i2s_dout_pin: ${pin_i2s_dout}
+    channel: stereo
+    sample_rate: ${sample_rate}
+    bits_per_sample: 32bit
+    timeout: never
+    buffer_duration: 500ms
+
+  - platform: mixer
+    id: mixer_speaker_id
+    output_speaker: i2s_audio_speaker
+    source_speakers:
+      - id: media_spk_mixer_input
+        buffer_duration: 300ms
+        timeout: never
+      - id: announcement_spk_mixer_input
+        buffer_duration: 300ms
+        timeout: never
+    num_channels: 2
+    task_stack_in_psram: false
+
+  - platform: resampler
+    id: media_resampling_speaker
+    output_speaker: media_spk_mixer_input
+    sample_rate: $sample_rate
+    bits_per_sample: 16
+    buffer_duration: 300ms
+    task_stack_in_psram: false
+  - platform: resampler
+    id: announcement_resampling_speaker
+    output_speaker: announcement_spk_mixer_input
+    sample_rate: $sample_rate
+    bits_per_sample: 16
+    buffer_duration: 300ms
+    task_stack_in_psram: false
+
+media_player:
+  - platform: sendspin
+    id: sendspin_group_media_player
+  - platform: speaker_source
+    name: "Media Player"
+    id: external_media_player
+    internal: false
+    media_pipeline:
+        speaker: media_resampling_speaker
+        format: FLAC
+        sample_rate: $sample_rate
+        num_channels: 2
+        sources:
+          - http_media_source
+          - sendspin_media_source
+    announcement_pipeline:
+        speaker: announcement_resampling_speaker
+        format: FLAC
+        sample_rate: $sample_rate
+        num_channels: 1
+        sources:
+          - http_announcement_source
+    volume_increment: 0.02
+    volume_initial: 0.80
+    volume_min: 0.04
+    volume_max: 0.96
+    on_announcement:
+      - mixer_speaker.apply_ducking:
+          id: media_spk_mixer_input
+          decibel_reduction: 40
+          duration: 0.2s
+    on_turn_off:
+      then:
+        - logger.log:
+            format: "Media player has been powered off"
+            level: WARN
+    on_turn_on:
+      then:
+        - logger.log:
+            format: "Media player has been powered on"
+            level: WARN
+    on_mute:
+      then:
+        - logger.log:
+            format: "Media player has been muted"
+            level: WARN
+    on_unmute:
+      then:
+        - logger.log:
+            format: "Media player has been un-muted"
+            level: WARN
+    
+    on_state:
+      - if:
+          condition:
+            not:
+              media_player.is_announcing: external_media_player
+          then:
+            - mixer_speaker.apply_ducking:
+                id: media_spk_mixer_input
+                decibel_reduction: 0
+                duration: 1.0s 
