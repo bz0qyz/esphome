@@ -16,11 +16,7 @@ switch:
     restore_mode: ALWAYS_OFF
     turn_on_action:
       - media_player.turn_on: external_media_player
-      - light.turn_on:
-          id: display_backlight
-          brightness: 100%
     turn_off_action:
-      - light.turn_off: display_backlight
       - media_player.turn_off: external_media_player
 
   - platform: template
