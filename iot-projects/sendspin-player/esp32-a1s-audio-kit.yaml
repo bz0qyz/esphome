@@ -1,78 +1,121 @@
 switch:
   - platform: gpio
-    pin: ${pin_amp} #GPIO21
+    pin: GPIO21
     name: "AMP Switch"
     restore_mode: ALWAYS_ON
 
 binary_sensor:
   - platform: gpio
+    id: jack_status
+    name: "Jack Status"
     pin:
       number: GPIO39
       inverted: true
       mode:
         input: true
-    name: "Jack Status"
-
+    on_press:
+      then:
+        - logger.log:
+            format: "Jack Status On"
+            level: WARN
+    
   - platform: gpio
+    id: key_1
+    name: "Key 1"
     pin:
       number: GPIO036
       inverted: true
-    name: "Key 1"
     filters:
       - delayed_off: 10ms
+    on_press:
+      then:
+        - logger.log:
+            format: "Key 1 Pressed"
+            level: WARN
+    
 
   - platform: gpio
+    id: key_2
+    name: "Key 2"
     pin:
       number: GPIO013
       inverted: true
-    name: "Key 2"
     filters:
       - delayed_off: 10ms
+    on_press:
+      then:
+        - logger.log:
+            format: "Key 2 Pressed"
+            level: WARN
 
   - platform: gpio
+    id: key_3
+    name: "Key 3"
     pin:
       number: GPIO019
       inverted: true
-    name: "Key 3"
     filters:
       - delayed_off: 10ms
+    on_press:
+      then:
+        - logger.log:
+            format: "Key 3 Pressed"
+            level: WARN
 
   - platform: gpio
+    id: key_4
+    name: "Key 4"
     pin:
       number: GPIO023
       inverted: true
       mode:
         input: true
         pullup: true
-    name: "Key 4"
     filters:
       - delayed_off: 10ms
+    on_press:
+      then:
+        - logger.log:
+            format: "Key 4 Pressed"
+            level: WARN
 
   - platform: gpio
+    id: key_5
+    name: "Key 5"
     pin:
       number: GPIO018
       inverted: true
       mode:
         input: true
         pullup: true
-    name: "Key 5"
     filters:
       - delayed_off: 10ms
+    on_press:
+      then:
+        - logger.log:
+            format: "Key 5 Pressed"
+            level: WARN
 
   - platform: gpio
+    id: key_6
+    name: "Key 6"
     pin:
       number: GPIO005
       inverted: true
       mode:
         input: true
         pullup: true
-    name: "Key 6"
     filters:
       - delayed_off: 10ms
+    on_press:
+      then:
+        - logger.log:
+            format: "Key 6 Pressed"
+            level: WARN
 
 light:
   - platform: binary
-    name: "Test LED 1"
+    name: "Board LED"
     output: light_output_1
 
 output:
