@@ -21,8 +21,8 @@ switch:
   - id: !extend power_control
     turn_on_action:
       - light.turn_on:
-        id: display_backlight
-        brightness: 100%
+          id: display_backlight
+          brightness: 100%
     turn_off_action:
       - light.turn_off: display_backlight
 
@@ -85,7 +85,7 @@ display:
     dc_pin: ${pin_spi_dc}
     cs_pin: ${pin_spi_cs}
     reset_pin: ${pin_spi_reset}
-    rotation: 270
+    rotation: ${screen_rotation}
     color_order: bgr
     invert_colors: true
     update_interval: never
