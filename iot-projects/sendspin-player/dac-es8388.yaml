@@ -16,8 +16,3 @@ speaker:
   - id: !extend i2s_audio_speaker
     audio_dac: es8388_dac
 
-switch:
-  - platform: gpio
-    pin: ${pin_amp} #GPIO21
-    name: "AMP Switch"
-    restore_mode: ALWAYS_ON
