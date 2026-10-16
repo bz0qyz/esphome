@@ -159,3 +159,20 @@ media_player:
                 id: media_spk_mixer_input
                 decibel_reduction: 0
                 duration: 1.0s 
+
+# Track metadata
+text_sensor:
+  - platform: sendspin
+    name: "Track Title"
+    id: track_title
+    type: title
+
+  - platform: sendspin
+    name: "Track Artist"
+    id: track_artist
+    type: artist
+
+  - platform: sendspin
+    name: "Track Album"
+    id: track_album
+    type: album
