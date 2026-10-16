@@ -1,0 +1,76 @@
+binary_sensor:
+  - platform: gpio
+    pin:
+      number: GPIO39
+      inverted: true
+      mode:
+        input: true
+    name: "Jack Status"
+
+  - platform: gpio
+    pin:
+      number: GPIO036
+      inverted: true
+    name: "Key 1"
+    filters:
+      - delayed_off: 10ms
+
+  - platform: gpio
+    pin:
+      number: GPIO013
+      inverted: true
+    name: "Key 2"
+    filters:
+      - delayed_off: 10ms
+
+  - platform: gpio
+    pin:
+      number: GPIO019
+      inverted: true
+    name: "Key 3"
+    filters:
+      - delayed_off: 10ms
+
+  - platform: gpio
+    pin:
+      number: GPIO023
+      inverted: true
+      mode:
+        input: true
+        pullup: true
+    name: "Key 4"
+    filters:
+      - delayed_off: 10ms
+
+  - platform: gpio
+    pin:
+      number: GPIO018
+      inverted: true
+      mode:
+        input: true
+        pullup: true
+    name: "Key 5"
+    filters:
+      - delayed_off: 10ms
+
+  - platform: gpio
+    pin:
+      number: GPIO005
+      inverted: true
+      mode:
+        input: true
+        pullup: true
+    name: "Key 6"
+    filters:
+      - delayed_off: 10ms
+
+light:
+  - platform: binary
+    name: "Test LED 1"
+    output: light_output_1
+
+output:
+  - id: light_output_1
+    platform: gpio
+    pin: GPIO22
+    inverted: true
