@@ -163,16 +163,16 @@ media_player:
 # Track metadata
 text_sensor:
   - platform: sendspin
-    name: "Track Title"
     id: track_title
+    name: "Track Title"
     type: title
 
   - platform: sendspin
-    name: "Track Artist"
     id: track_artist
+    name: "Track Artist"
     type: artist
 
   - platform: sendspin
-    name: "Track Album"
     id: track_album
+    name: "Track Album"
     type: album

@@ -2,7 +2,6 @@
 network:
   enable_high_performance: false
 
-captive_portal:
 
 http_request:
   id: http_req
