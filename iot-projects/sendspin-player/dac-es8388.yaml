@@ -1,3 +1,10 @@
+esphome:
+  on_boot:
+    - priority: -100.0
+      then:
+        - select.set:
+            id: dac_output
+            option: "BOTH"
 i2c:
   id: main_i2c_bus
   sda: ${pin_i2c_sda}
@@ -26,6 +33,7 @@ speaker:
 
 select:
   - platform: es8388
+    id: dac_output
     es8388_id: es8388_dac
     dac_output:
       name: "DAC Output"
