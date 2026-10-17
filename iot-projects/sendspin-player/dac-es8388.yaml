@@ -3,7 +3,7 @@ esphome:
     - priority: -100.0
       then:
         - select.set:
-            id: dac_output
+            id: dac_output_select
             option: "BOTH"
 i2c:
   id: main_i2c_bus
@@ -33,7 +33,7 @@ speaker:
 
 select:
   - platform: es8388
-    id: dac_output
+    id: dac_output_select
     es8388_id: es8388_dac
     dac_output:
       name: "DAC Output"
