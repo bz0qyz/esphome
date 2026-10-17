@@ -33,10 +33,11 @@ speaker:
 
 select:
   - platform: es8388
-    id: dac_output_select
     es8388_id: es8388_dac
     dac_output:
+      id: dac_output_select
       name: "DAC Output"
     adc_input_mic:
+      id: dac_input_select
       name: "ADC Input MIC"
     
