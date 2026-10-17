@@ -31,3 +31,5 @@ select:
       name: "DAC Output"
     adc_input_mic:
       name: "ADC Input MIC"
+    restore_value: true
+    
