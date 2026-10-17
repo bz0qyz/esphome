@@ -1,6 +1,7 @@
 switch:
   - platform: gpio
     pin: GPIO21
+    id: mute_switch
     name: "AMP Switch"
     restore_mode: ALWAYS_ON
 
@@ -16,7 +17,7 @@ binary_sensor:
     on_press:
       then:
         - logger.log:
-            format: "Jack Status On"
+            format: "Jack Status"
             level: WARN
     
   - platform: gpio
@@ -113,13 +114,15 @@ binary_sensor:
             format: "Key 6 Pressed"
             level: WARN
 
+output:
+  - platform: ledc
+    id: output_led
+    pin: 
+      number: GPIO22
+      inverted: true
+
 light:
   - platform: binary
     name: "Board LED"
-    output: light_output_1
-
-output:
-  - id: light_output_1
-    platform: gpio
-    pin: GPIO22
-    inverted: true
+    output: output_led
+    restore_mode: ALWAYS_OFF

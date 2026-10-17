@@ -2,6 +2,7 @@ i2c:
   id: main_i2c_bus
   sda: ${pin_i2c_sda}
   scl: ${pin_i2c_scl}
+  frequency: 100kHz
 
 audio_dac:
   - platform: es8388
@@ -12,7 +13,21 @@ i2s_audio:
   - id: !extend i2s_out
     i2s_mclk_pin: ${pin_i2s_mclk}
 
+microphone:
+  - platform: i2s_audio
+    id: i2smic
+    i2s_din_pin: ${pin_i2s_din}
+    adc_type: external
+    pdm: false
+
 speaker:
   - id: !extend i2s_audio_speaker
     audio_dac: es8388_dac
 
+select:
+  - platform: es8388
+    es8388_id: es8388_dac
+    dac_output:
+      name: "DAC Output"
+    adc_input_mic:
+      name: "ADC Input MIC"
