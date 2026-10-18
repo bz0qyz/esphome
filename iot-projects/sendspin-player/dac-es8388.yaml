@@ -15,6 +15,7 @@ audio_dac:
   - platform: es8388
     id: es8388_dac
     i2c_id: main_i2c_bus
+    dac_volume: 25%
     
 i2s_audio:
   - id: !extend i2s_out
@@ -32,7 +33,6 @@ microphone:
 speaker:
   - id: !extend i2s_audio_speaker
     audio_dac: es8388_dac
-    internal: true
 
 select:
   - platform: es8388
