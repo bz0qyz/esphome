@@ -122,10 +122,10 @@ media_player:
         num_channels: 1
         sources:
           - http_announcement_source
-    # volume_increment: 0.02
-    # volume_initial: 0.80
-    # volume_min: 0.04
-    # volume_max: 0.96
+    volume_increment: 0.02
+    volume_initial: 0.80
+    volume_min: 0.04
+    volume_max: 0.96
     on_announcement:
       - mixer_speaker.apply_ducking:
           id: media_spk_mixer_input
