@@ -5,9 +5,9 @@ esphome:
         - select.set:
             id: dac_output_select
             option: "BOTH"
-        - audio_dac.set_volume:
-            id: es8388_dac
-            volume: 100%
+        # - audio_dac.set_volume:
+        #     id: es8388_dac
+        #     volume: 100%
 
 i2c:
   id: main_i2c_bus
