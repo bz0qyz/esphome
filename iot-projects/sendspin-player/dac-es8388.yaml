@@ -6,8 +6,8 @@ esphome:
             id: dac_output_select
             option: "BOTH"
         - audio_dac.set_volume:
-          id: es8388_dac
-          volume: 25%
+            id: es8388_dac
+            volume: 25%
 i2c:
   id: main_i2c_bus
   sda: ${pin_i2c_sda}
