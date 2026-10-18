@@ -31,9 +31,8 @@ microphone:
 
 speaker:
   - id: !extend i2s_audio_speaker
-    min_volume_db: -97
-    max_volume_db: 0
     audio_dac: es8388_dac
+    internal: true
 
 select:
   - platform: es8388
