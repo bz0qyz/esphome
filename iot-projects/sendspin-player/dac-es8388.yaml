@@ -37,6 +37,14 @@ speaker:
   - id: !extend i2s_audio_speaker
     audio_dac: es8388_dac
 
+media_player:
+  - id: !extend external_media_player
+    on_volume:
+      - audio_dac.set_volume:
+          id: es8388_dac
+          volume: !lambda |-
+            return x * 0.25f;
+
 select:
   - platform: es8388
     es8388_id: es8388_dac
