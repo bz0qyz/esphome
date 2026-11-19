@@ -20,8 +20,8 @@ substitutions:
   PIN_KEY_5: GPIO018 # Also GPIO: IO18
   PIN_KEY_6: GPIO005 # Also GPIO: IO05
   # Micro wake word model
-  wakeword_model_file: https://s3.us-east-1.amazonaws.com/files.64byte.dev/micro-wake-word-models/computer.json
-  wakeword_model_name: computer
+  wakeword_model: hey_jarvis
+  wakeword_id: hey_jarvis
 
 esp32:
   board: esp-wrover-kit
@@ -95,8 +95,8 @@ micro_wake_word:
         wake_word: !lambda return wake_word;
   vad:
   models:
-    - model: ${wakeword_model_file}
-      id: ${wakeword_model_name}
+    - model: ${wakeword_model}
+      id: ${wakeword_id}
 
 speaker:
   - platform: i2s_audio
