@@ -30,9 +30,9 @@ substitutions:
 
 globals:
   - id: led_brightness
-    type: string
+    type: int
     restore_value: yes
-    initial_value: "100%"
+    initial_value: 100%
 
 esp32:
   board: esp-wrover-kit
