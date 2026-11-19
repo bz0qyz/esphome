@@ -1,6 +1,11 @@
 substitutions:
+  timezone: UTC
   log_level: INFO
   sample_rate: 48000
+  latitude: 33.0142765°
+  longitude: -97.025589°
+  bright_day: 100%
+  bright_night: 20%
   # DAC pins
   PIN_I2C_SDA: GPIO33
   PIN_I2C_SCL: GPIO32
@@ -22,6 +27,12 @@ substitutions:
   # Micro wake word model
   wakeword_model: hey_jarvis
   wakeword_id: hey_jarvis
+
+globals:
+  - id: led_brightness
+    type: string
+    restore_value: yes
+    initial_value: "100%"
 
 esp32:
   board: esp-wrover-kit
@@ -71,6 +82,35 @@ network:
 
 http_request:
   id: http_req
+
+time:
+  - platform: sntp
+    id: ntp_time
+    timezone: ${timezone}
+    servers:
+      - 0.pool.ntp.org
+      - 1.pool.ntp.org
+      - 2.pool.ntp.org
+    on_time_sync:
+      then:
+        - logger.log:
+            format: "Time Synchronized updating sunrise and sunset"
+            level: INFO
+
+sun:
+  id: the_sun
+  latitude: ${latitude}
+  longitude: ${longitude}
+  on_sunrise:
+    - then:
+      - globals.set:
+            id: led_brightness
+            value: ${bright_day}
+  on_sunset:
+    - then:
+      - globals.set:
+            id: led_brightness
+            value: ${bright_night}
 
 i2c:
   id: main_i2c_bus
@@ -165,7 +205,7 @@ voice_assistant:
     - light.turn_on:
         id: rgb1
         effect: "slow pulse"
-        brightness: 90%
+        brightness: !lambda "return id(led_brightness);"
         blue: 0%
         red: 0%
         green: 100%
@@ -283,6 +323,13 @@ switch:
           announcement: true
       - delay: 15min
       - switch.turn_off: timer_ringing
+
+sensor:
+  - platform: sun
+    name: Sun Elevation
+    type: elevation
+    update_interval: 60s
+    entity_category: "DIAGNOSTIC"
 
 binary_sensor:
   - platform: gpio
