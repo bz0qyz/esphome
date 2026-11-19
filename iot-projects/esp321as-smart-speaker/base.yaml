@@ -155,6 +155,9 @@ voice_assistant:
     - microphone: i2smic
       channels: 0
       gain_factor: 4
+    - microphone: i2smic
+      channels: 1
+      gain_factor: 4
   media_player: main_player
   noise_suppression_level: 2
   auto_gain: 31dBFS
