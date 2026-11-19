@@ -1,0 +1,435 @@
+substitutions:
+  log_level: INFO
+  sample_rate: 48000
+  # DAC pins
+  PIN_I2C_SDA: GPIO33
+  PIN_I2C_SCL: GPIO32
+  PIN_I2S_DOUT: GPIO26
+  PIN_I2S_DIN: GPIO35
+  PIN_I2S_BCLK: GPIO27
+  PIN_I2S_LRCLK: GPIO25
+  PIN_I2S_MCLK: GPIO0
+  # Board pins
+  PIN_SWT_AMP: GPIO21
+  PIN_PWR_LED1: GPIO22
+  PIN_JACK_STAT: GPIO39
+  PIN_KEY_1: GPIO036
+  PIN_KEY_2: GPIO013
+  PIN_KEY_3: GPIO019 # Also LED2
+  PIN_KEY_4: GPIO023 # Also GPIO: IO23
+  PIN_KEY_5: GPIO018 # Also GPIO: IO18
+  PIN_KEY_6: GPIO005 # Also GPIO: IO05
+  # Micro wake word model
+  wakeword_model_file: https://s3.us-east-1.amazonaws.com/files.64byte.dev/micro-wake-word-models/computer.json
+  wakeword_model_name: computer
+
+esp32:
+  board: esp-wrover-kit
+  variant: esp32
+  flash_size: 4MB
+  framework:
+    type: esp-idf
+    version: recommended
+    sdkconfig_options:
+        CONFIG_ESP32_DEFAULT_CPU_FREQ_240: "y"
+        CONFIG_ESP32_DATA_CACHE_64KB: "y"
+        CONFIG_ESP32_DATA_CACHE_LINE_64B: "y"
+        CONFIG_SPIRAM_SPEED_80M: "y"
+
+psram:
+
+logger:
+  level: ${log_level}
+
+esphome:
+  name: ${devicename}
+  friendly_name: ${friendly_devicename}
+  area: ${device_area}
+  on_boot:
+    - priority: 600
+      then:
+        - delay: 5s
+        - micro_wake_word.enable_model: ${wakeword_model_name}
+    - priority: -100.0
+      then:
+        - media_player.mute: 
+            id: main_player
+        - select.set:
+            id: dac_output_select
+            option: "BOTH"
+        - select.set:
+            id: dac_input_select
+            option: "LINE2"
+        - delay: 500ms
+        - switch.turn_on: 
+            id: amp_switch
+        - media_player.unmute: 
+            id: main_player
+
+network:
+  enable_high_performance: false
+
+http_request:
+  id: http_req
+
+i2c:
+  id: main_i2c_bus
+  sda: ${PIN_I2C_SDA}
+  scl: ${PIN_I2C_SCL}
+  frequency: 100kHz
+
+i2s_audio:
+  - id: i2s_out
+    i2s_lrclk_pin: ${PIN_I2S_LRCLK}
+    i2s_bclk_pin: ${PIN_I2S_BCLK}
+    i2s_mclk_pin: ${PIN_I2S_MCLK}
+
+audio_dac:
+  - platform: es8388
+    id: es8388_dac
+    i2c_id: main_i2c_bus
+
+micro_wake_word:
+  on_wake_word_detected:
+    - voice_assistant.start:
+        wake_word: !lambda return wake_word;
+  vad:
+  models:
+    - model: ${wakeword_model_file}
+      id: ${wakeword_model_name}
+
+speaker:
+  - platform: i2s_audio
+    id: i2s_audio_speaker
+    dac_type: external
+    audio_dac: es8388_dac
+    i2s_audio_id: i2s_out
+    i2s_dout_pin: ${PIN_I2S_DOUT}
+    channel: stereo
+    sample_rate: ${sample_rate}
+    bits_per_sample: 32bit
+    timeout: 2s
+    buffer_duration: 500ms
+
+microphone:
+  - platform: i2s_audio
+    id: i2smic
+    i2s_din_pin: ${PIN_I2S_DIN}
+    adc_type: external
+    pdm: false
+    sample_rate: 16000
+    bits_per_sample: 16bit
+    channel: stereo
+
+media_player:
+  - platform: speaker
+    name: Media Player
+    id: main_player
+    announcement_pipeline:
+      speaker: i2s_audio_speaker
+      format: WAV
+      num_channels: 1
+    buffer_size: 6000
+    volume_increment: 0.05
+    volume_initial: 30%
+    volume_min: 0.3
+    volume_max: 1.0
+    files:
+      - id: timer_finished_wave_file
+        file: https://github.com/esphome/wake-word-voice-assistants/raw/main/sounds/timer_finished.wav
+    on_announcement:
+      - if:
+          condition:
+            - microphone.is_capturing:
+          then:
+            - script.execute: stop_wake_word
+    on_idle:
+      - script.execute: start_wake_word
+      - light.turn_off:
+          id: rgb1
+
+voice_assistant:
+  id: va
+  micro_wake_word:
+  microphone:
+    - microphone: i2smic
+      channels: 0
+      gain_factor: 4
+  media_player: main_player
+  noise_suppression_level: 2
+  auto_gain: 31dBFS
+  on_listening:
+    - light.turn_on:
+        id: rgb1
+        effect: "slow pulse"
+        brightness: 90%
+        blue: 0%
+        red: 0%
+        green: 100%
+  on_stt_vad_end:
+    - light.turn_on:
+        id: rgb1
+        effect: "fast pulse"
+        brightness: 90%
+        blue: 100%
+        red: 0%
+        green: 0%
+  on_tts_start:
+    - light.turn_on:
+        id: rgb1
+        effect: none
+        brightness: 50%
+        blue: 100%
+        red: 0%
+        green: 0%
+  on_end:
+    # Handle the "nevermind" case where there is no announcement
+    - wait_until:
+        condition:
+          - media_player.is_announcing:
+        timeout: 0.5s
+    # Restart only mWW if enabled; streaming wake words automatically restart
+    - if:
+        condition:
+          - lambda: |-
+              return id(wake_word_engine_location).current_option() == "On device";
+        then:
+          - wait_until:
+              - and:
+                  - not:
+                      voice_assistant.is_running:
+                  - not:
+                      speaker.is_playing:
+          - lambda: id(va).set_use_wake_word(false);
+          - micro_wake_word.start:
+    - light.turn_off: 
+        id: rgb1
+  on_error:
+    - light.turn_on:
+        id: rgb1
+        effect: "fast pulse"
+        brightness: 90%
+        blue: 0%
+        red: 100%
+        green: 0%
+  on_client_connected:
+    - delay: 2s  # Give the api server time to settle
+    - script.execute: start_wake_word
+  on_client_disconnected:
+    - script.execute: stop_wake_word
+  on_timer_tick:
+    - light.turn_on:
+        id: rgb1
+        brightness: 60%
+        effect: "timer running"
+  on_timer_cancelled:
+    - light.turn_off:
+        id: rgb1
+  on_timer_finished:
+    - light.turn_off:
+        id: rgb1
+    - script.execute: stop_wake_word
+    - wait_until:
+        not:
+          microphone.is_capturing:
+    - switch.turn_on: timer_ringing
+    - light.turn_on:
+        id: rgb1
+        brightness: 60%
+        effect: "timer ringing"
+    - wait_until:
+        - switch.is_off: timer_ringing
+    - light.turn_off:
+        id: rgb1
+    - switch.turn_off: timer_ringing
+
+switch:
+  - platform: gpio
+    pin: ${PIN_SWT_AMP}
+    id: amp_switch
+    name: "AMP Switch"
+    restore_mode: ALWAYS_OFF
+  
+  - platform: template
+    id: timer_ringing
+    optimistic: true
+    restore_mode: ALWAYS_OFF
+    on_turn_off:
+      # Turn off the repeat mode and disable the pause between playlist items
+      - lambda: |-
+              id(main_player)
+                ->make_call()
+                .set_command(media_player::MediaPlayerCommand::MEDIA_PLAYER_COMMAND_REPEAT_OFF)
+                .set_announcement(true)
+                .perform();
+              id(main_player)->set_playlist_delay_ms(speaker::AudioPipelineType::ANNOUNCEMENT, 0);
+      # Stop playing the alarm
+      - media_player.stop:
+          announcement: true
+    on_turn_on:
+      # Turn on the repeat mode and pause for 1000 ms between playlist items/repeats
+      - lambda: |-
+            id(main_player)
+              ->make_call()
+              .set_command(media_player::MediaPlayerCommand::MEDIA_PLAYER_COMMAND_REPEAT_ONE)
+              .set_announcement(true)
+              .perform();
+            id(main_player)->set_playlist_delay_ms(speaker::AudioPipelineType::ANNOUNCEMENT, 1000);
+      - media_player.speaker.play_on_device_media_file:
+          media_file: timer_finished_wave_file
+          announcement: true
+      - delay: 15min
+      - switch.turn_off: timer_ringing
+
+binary_sensor:
+  - platform: gpio
+    id: jack_status
+    name: "Jack Status"
+    pin:
+      number: ${PIN_JACK_STAT}
+      inverted: true
+      mode:
+        input: true
+  - platform: gpio
+    id: timer_cancel_button
+    name: Button
+    pin:
+      number: ${PIN_KEY_6}
+      inverted: true
+      mode:
+        input: true
+        pullup: true
+    disabled_by_default: true
+    entity_category: diagnostic
+    on_multi_click:
+      - timing:
+          - ON for at least 50ms
+          - OFF for at least 50ms
+        then:
+          - if:
+              condition:
+                switch.is_on: timer_ringing
+              then:
+                - switch.turn_off: timer_ringing
+              else:
+                - voice_assistant.start:
+                    id: va
+      - timing:
+          - ON for at least 2s
+          - OFF for at least 50ms
+        then:
+          - voice_assistant.start:
+              id: va
+
+select:
+  - platform: es8388
+    es8388_id: es8388_dac
+    dac_output:
+      id: dac_output_select
+      name: "DAC Output"
+    adc_input_mic:
+      id: dac_input_select
+      name: "ADC Input MIC"
+      
+
+  - platform: template
+    entity_category: config
+    name: Wake word engine location
+    id: wake_word_engine_location
+    optimistic: true
+    restore_value: true
+    options:
+      - In Home Assistant
+      - On device
+    initial_option: On device
+    on_value:
+      - if:
+          condition:
+            lambda: return x == "In Home Assistant";
+          then:
+            - micro_wake_word.stop:
+            - delay: 500ms
+            - lambda: id(va).set_use_wake_word(true);
+            - voice_assistant.start_continuous:
+      - if:
+          condition:
+            lambda: return x == "On device";
+          then:
+            - lambda: id(va).set_use_wake_word(false);
+            - voice_assistant.stop:
+            - delay: 500ms
+            - micro_wake_word.start:
+
+light:
+  - platform: esp32_rmt_led_strip
+    id: rgb1
+    channel_colors: GRB
+    pin: ${PIN_KEY_4}
+    num_leds: 1
+    chipset: ws2812
+    name: "Activity Light"
+    effects:
+      - pulse:
+          name: "slow pulse"
+          transition_length: 250ms
+          update_interval: 250ms
+          min_brightness: 50%
+          max_brightness: 100%
+      - pulse:
+          name: "fast pulse"
+          transition_length: 100ms
+          update_interval: 100ms
+          min_brightness: 50%
+          max_brightness: 100%
+      - addressable_rainbow:
+          name: "timer running"
+          speed: 10
+          width: 50
+      - addressable_rainbow:
+          name: "timer ringing"
+          speed: 50
+          width: 50
+      - addressable_scan:
+          name: Busy
+          move_interval: 500ms
+          scan_width: 1
+
+script:
+  - id: start_wake_word
+    then:
+      - if:
+          condition:
+            and:
+              - not:
+                  - voice_assistant.is_running:
+              - lambda: |-
+                  return id(wake_word_engine_location).current_option() == "On device";
+          then:
+            - lambda: id(va).set_use_wake_word(false);
+            - micro_wake_word.start:
+      - if:
+          condition:
+            and:
+              - not:
+                  - voice_assistant.is_running:
+              - lambda: |-
+                  return id(wake_word_engine_location).current_option() == "In Home Assistant";
+          then:
+            - lambda: id(va).set_use_wake_word(true);
+            - voice_assistant.start_continuous:
+  - id: stop_wake_word
+    then:
+      - if:
+          condition:
+            lambda: |-
+                  return id(wake_word_engine_location).current_option() == "In Home Assistant";
+          then:
+            - lambda: id(va).set_use_wake_word(false);
+            - voice_assistant.stop:
+      - if:
+          condition:
+            lambda: |-
+              return id(wake_word_engine_location).current_option() == "On device";
+          then:
+            - micro_wake_word.stop:
+            - delay: 500ms
