@@ -447,6 +447,7 @@ select:
       - "60%"
       - "50%"
       - "40%"
+      - "30%"
       - "20%"
       - "10%"
     initial_option: "100%"
@@ -465,8 +466,10 @@ select:
       - "60%"
       - "50%"
       - "40%"
+      - "30%"
       - "20%"
       - "10%"
+      - "5%"
     initial_option: "20%"
     on_value:
       - script.execute: set_led_brightness
