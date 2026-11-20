@@ -81,12 +81,12 @@ esphome:
             then:
               - globals.set:
                   id: led_brightness
-                  value: |-
+                  value: !lambda |-
                     return atof(id(day_brightness).current_option().c_str()) / 100.0;
             else:
               - globals.set:
                   id: led_brightness
-                  value: |-
+                  value: !lambda |-
                     return atof(id(night_brightness).current_option().c_str()) / 100.0;
 
 network:
@@ -117,13 +117,13 @@ sun:
     - then:
       - globals.set:
             id: led_brightness
-            value: |-
+            value: !lambda |-
               return atof(id(day_brightness).current_option().c_str()) / 100.0;
   on_sunset:
     - then:
       - globals.set:
             id: led_brightness
-            value: |-
+            value: !lambda |-
               return atof(id(night_brightness).current_option().c_str()) / 100.0;
 
 i2c:
