@@ -450,7 +450,7 @@ select:
       - "20%"
       - "10%"
     initial_option: "100%"
-    on_change:
+    on_value:
       - script.execute: set_led_brightness
 
   - platform: template
@@ -468,7 +468,7 @@ select:
       - "20%"
       - "10%"
     initial_option: "20%"
-    on_change:
+    on_value:
       - script.execute: set_led_brightness
 
 light:
