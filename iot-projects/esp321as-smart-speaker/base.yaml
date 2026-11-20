@@ -30,7 +30,7 @@ globals:
   - id: led_brightness
     type: float
     restore_value: yes
-    initial_value: 1.0
+    initial_value: "1.0"
 
 esp32:
   board: esp-wrover-kit
