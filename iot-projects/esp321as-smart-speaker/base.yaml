@@ -4,8 +4,6 @@ substitutions:
   sample_rate: 48000
   latitude: 33.0142765°
   longitude: -97.025589°
-  bright_day: 100%
-  bright_night: 20%
   # DAC pins
   PIN_I2C_SDA: GPIO33
   PIN_I2C_SCL: GPIO32
@@ -30,9 +28,9 @@ substitutions:
 
 globals:
   - id: led_brightness
-    type: int
+    type: float
     restore_value: yes
-    initial_value: 100%
+    initial_value: 1.0
 
 esp32:
   board: esp-wrover-kit
@@ -76,6 +74,20 @@ esphome:
             id: amp_switch
         - media_player.unmute: 
             id: main_player
+        # Set LED brightness based on the sun
+        - if:
+            condition:
+              sun.is_above_horizon:
+            then:
+              - globals.set:
+                  id: led_brightness
+                  value: |-
+                    return atof(id(day_brightness).current_option().c_str()) / 100.0;
+            else:
+              - globals.set:
+                  id: led_brightness
+                  value: |-
+                    return atof(id(night_brightness).current_option().c_str()) / 100.0;
 
 network:
   enable_high_performance: false
@@ -105,12 +117,14 @@ sun:
     - then:
       - globals.set:
             id: led_brightness
-            value: ${bright_day}
+            value: |-
+              return atof(id(day_brightness).current_option().c_str()) / 100.0;
   on_sunset:
     - then:
       - globals.set:
             id: led_brightness
-            value: ${bright_night}
+            value: |-
+              return atof(id(night_brightness).current_option().c_str()) / 100.0;
 
 i2c:
   id: main_i2c_bus
@@ -409,6 +423,36 @@ select:
             - voice_assistant.stop:
             - delay: 500ms
             - micro_wake_word.start:
+
+  - platform: template
+    name: "Day Brightness"
+    id: day_brightness
+    entity_category: config
+    optimistic: true
+    restore_value: true
+    options:
+      - "100%"
+      - "80%"
+      - "60%"
+      - "40%"
+      - "20%"
+      - "10%"
+    initial_option: "100%"
+
+  - platform: template
+    name: "Night Brightness"
+    id: night_brightness
+    entity_category: config
+    optimistic: true
+    restore_value: true
+    options:
+      - "100%"
+      - "80%"
+      - "60%"
+      - "40%"
+      - "20%"
+      - "10%"
+    initial_option: "20%"
 
 light:
   - platform: esp32_rmt_led_strip
