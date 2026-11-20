@@ -345,6 +345,17 @@ sensor:
     update_interval: 60s
     entity_category: "DIAGNOSTIC"
 
+text_sensor:
+  - platform: template
+    name: "Current LED Brightness"
+    id: current_led_brightness
+    entity_category: diagnostic
+    update_interval: 5s
+    lambda: |-
+      char buffer[10];
+      snprintf(buffer, sizeof(buffer), "%.0f%%", id(led_brightness) * 100.0f);
+      return {buffer};
+
 binary_sensor:
   - platform: gpio
     id: jack_status
@@ -395,7 +406,6 @@ select:
       id: dac_input_select
       name: "ADC Input MIC"
       
-
   - platform: template
     entity_category: config
     name: Wake word engine location
@@ -425,7 +435,7 @@ select:
             - micro_wake_word.start:
 
   - platform: template
-    name: "Day Brightness"
+    name: "LED Day Brightness"
     id: day_brightness
     entity_category: config
     optimistic: true
@@ -434,13 +444,14 @@ select:
       - "100%"
       - "80%"
       - "60%"
+      - "50%"
       - "40%"
       - "20%"
       - "10%"
     initial_option: "100%"
 
   - platform: template
-    name: "Night Brightness"
+    name: "LED Night Brightness"
     id: night_brightness
     entity_category: config
     optimistic: true
@@ -449,6 +460,7 @@ select:
       - "100%"
       - "80%"
       - "60%"
+      - "50%"
       - "40%"
       - "20%"
       - "10%"
