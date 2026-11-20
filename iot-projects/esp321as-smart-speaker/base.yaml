@@ -75,19 +75,20 @@ esphome:
         - media_player.unmute: 
             id: main_player
         # Set LED brightness based on the sun
-        - if:
-            condition:
-              sun.is_above_horizon:
-            then:
-              - globals.set:
-                  id: led_brightness
-                  value: !lambda |-
-                    return atof(id(day_brightness).current_option().c_str()) / 100.0;
-            else:
-              - globals.set:
-                  id: led_brightness
-                  value: !lambda |-
-                    return atof(id(night_brightness).current_option().c_str()) / 100.0;
+        - script.execute: set_led_brightness
+        # - if:
+        #     condition:
+        #       sun.is_above_horizon:
+        #     then:
+        #       - globals.set:
+        #           id: led_brightness
+        #           value: !lambda |-
+        #             return atof(id(day_brightness).current_option().c_str()) / 100.0;
+        #     else:
+        #       - globals.set:
+        #           id: led_brightness
+        #           value: !lambda |-
+        #             return atof(id(night_brightness).current_option().c_str()) / 100.0;
 
 network:
   enable_high_performance: false
@@ -449,6 +450,8 @@ select:
       - "20%"
       - "10%"
     initial_option: "100%"
+    on_change:
+      - script.execute: set_led_brightness
 
   - platform: template
     name: "LED Night Brightness"
@@ -465,6 +468,8 @@ select:
       - "20%"
       - "10%"
     initial_option: "20%"
+    on_change:
+      - script.execute: set_led_brightness
 
 light:
   - platform: esp32_rmt_led_strip
@@ -539,3 +544,20 @@ script:
           then:
             - micro_wake_word.stop:
             - delay: 500ms
+
+  - id: set_led_brightness
+    then:
+      - if:
+          condition:
+            sun.is_above_horizon:
+          then:
+            - globals.set:
+                id: led_brightness
+                value: !lambda |-
+                  return atof(id(day_brightness).current_option().c_str()) / 100.0;
+          else:
+            - globals.set:
+                id: led_brightness
+                value: !lambda |-
+                  return atof(id(night_brightness).current_option().c_str()) / 100.0;
+
